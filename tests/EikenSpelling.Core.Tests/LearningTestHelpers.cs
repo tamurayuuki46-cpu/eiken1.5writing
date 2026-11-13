@@ -36,7 +36,14 @@ internal sealed class Learner
     public WordProgress Word(string word) => Progress.Word(word) ?? throw new InvalidOperationException($"{word} の記録がありません。");
 
     /// <summary>Day0 に誤答して苦手にする。</summary>
-    public void MakeWeak(string word, DateOnly day) => Answer(word, LearningMode.Japanese, false, Jst.At(day));
+    public void MakeWeak(string word, DateOnly day)
+    {
+        Answer(word, LearningMode.Japanese, false, Jst.At(day));
+        if (Word(word).State != LearningState.Weak)
+        {
+            throw new InvalidOperationException("MakeWeak は MarkWeakAfterMistakes=1 を前提にしています。");
+        }
+    }
 
     /// <summary>苦手にしたあと、必要回数の日数だけ日本語で正答して克服させる。克服した日を返す。</summary>
     public DateOnly MakeMastered(string word, DateOnly day)

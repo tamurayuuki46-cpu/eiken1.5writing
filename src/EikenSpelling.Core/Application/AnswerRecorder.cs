@@ -69,6 +69,12 @@ public static class AnswerRecorder
         {
             throw new ArgumentException("出題モードまたは回答の種類が定義外です。", nameof(answer));
         }
+
+        // 初期化し忘れの ID だと別セッションの回答まで「重複」として黙って捨てられるため拒否する
+        if (answer.Id.SessionId == Guid.Empty || answer.Id.QuestionIndex < 0)
+        {
+            throw new ArgumentException("回答IDのセッションIDが空、または通し番号が負です。", nameof(answer));
+        }
     }
 
     /// <summary>モード別記録の更新(通常・再練習の両方。design.md 2章の表)。</summary>
@@ -108,7 +114,8 @@ public static class AnswerRecorder
         var date = JstClock.ToJstDate(answer.AnsweredAt);
         if (!answer.IsCorrect)
         {
-            var weak = word.State == LearningState.Mastered
+            // 苦手・克服済みの単語は誤答で必ず苦手(R4・v1.0 8.1)。累計で判定するのは未登録の単語だけ
+            var weak = word.State is LearningState.Weak or LearningState.Mastered
                 || word.NormalMistakes >= settings.WeakWordScore.MarkWeakAfterMistakes;
             return word with
             {
@@ -127,7 +134,7 @@ public static class AnswerRecorder
 
         return word.State switch
         {
-            LearningState.Weak => MasteryEvaluator.ApplyCorrect(word, answer.Mode, date, answer.AnsweredAt, settings.Mastery),
+            LearningState.Weak => MasteryEvaluator.ApplyCorrect(word, answer.Mode, answer.AnsweredAt, settings.Mastery),
             LearningState.Mastered when word.NextReviewDate is { } due && date >= due => Advance(word, date, settings.Mastery),
             _ => word,
         };

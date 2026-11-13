@@ -25,9 +25,11 @@
 ### 検証
 - [x] `dotnet build -warnaserror` と `dotnet test` が全件通る(220/220、Red 57件を確認してから実装)
 - [x] 受入条件(requirements.md 5.)を1つずつ確認(すべて対応するテストあり)
-- [ ] ⑥ 3体レビュー(P0・P1 が残っていない)
+- [ ] ⑥ 3体レビュー(1往復目: P0 0 / P1 4 → 修正済み、232/232。2往復目の再レビュー中)
 
 ### 片付け
+- [ ] P2(⑥): DueWordIds を ImmutableArray に / AnswerResult を別ファイルに / ReviewAdvanced を差分ではなく分岐で返す / 性能テストを AnswerRecorderTests へ / 間隔0件の分岐の扱い / 元の記録が変わらないテストを再練習・克服済みの経路にも
+- [ ] 次のタスクへ(⑥): ProgressValidator に「辞書のキー == WordId」「回数・連続正答が 0 以上」「Modes に null なし」「列挙が定義内」を追加 / 復元時に StringComparer.Ordinal を付け直す / 未来の日時の扱い / 未完了のまま古いセッションの answerId を消す条件 / 回答の record をそのままログに出さない(logging.md)/ 古い回答が後から届いた場合の扱い / DateTimeOffset.MaxValue の回答日時
 - [ ] P2(②③): 日時のオフセット統一 / 誤答入力の長さの上限 / 同じ answerId で中身が違う回答 / DateTimeOffset の範囲 / 部品名と v1.2 の対応 / 性能の計測方法
 - [x] decisions.md の決定を docs/DECISIONS.md へ(苦手度の保留を含む)
 - [ ] 学びを CLAUDE.md の「学びメモ」に1行追記

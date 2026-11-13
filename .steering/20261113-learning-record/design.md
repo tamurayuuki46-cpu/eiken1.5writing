@@ -41,8 +41,8 @@
 | 状態 | MasteryStreak | LastEligibleCorrectDate | ReviewStage | NextReviewDate | MasteredAt |
 |---|---|---|---|---|---|
 | Normal | 0 | null | 0 | null | 任意(過去の克服) |
-| Weak | 0〜必要回数−1 | streak>0 なら値あり | 0 | null | 任意(過去の克服) |
-| Mastered | 必要回数(克服時の値を残す。v1.1 10.3) | 値あり | 1〜間隔の数 | 値あり、または null(RepeatLastInterval=false で最後まで終えた) | 値あり |
+| Weak | 0〜必要回数−1(設定で必要回数を下げた直後はそれ以上もありうる。次の対象正答で克服) | streak>0 なら値あり | 0 | null | 任意(過去の克服) |
+| Mastered | 必要回数(克服時に必要回数へそろえる。v1.1 10.3) | 値あり | 1〜間隔の数 | 値あり、または null(RepeatLastInterval=false で最後まで終えた) | 値あり |
 - この表を確かめる処理(読み込み時の検査)は、progress.json を作る次のタスクで作る。今回は Apply が段階・添字を範囲内に収めて例外を防ぐ
 
 ## 3. データ
@@ -51,7 +51,7 @@
 - Schema 変更: 新規(学習記録の初版)。`LearningProgress.CurrentSchemaVersion = 1`。JSON の形、`wordSetVersion` / `sourceVersion` の保存は次のタスクで決める
 
 ## 4. 処理の流れ(AnswerRecorder.Apply)
-1. 入力を確かめる。wordId が空、mode・attemptType が定義外なら ArgumentException
+1. 入力を確かめる。wordId が空、mode・attemptType が定義外、sessionId が Guid.Empty、questionIndex が負なら ArgumentException
 2. answerId が反映済みなら、何も変えずに「重複」を返す(R3)
 3. 単語の記録が無いとき: 通常問題なら新しく作る。**再練習なら InvalidOperationException**(本来は起きない入力)
 4. モード別記録を更新する(2章の表)
@@ -60,11 +60,12 @@
 7. 通常問題: 最終通常出題日時を更新し、次のとおり状態を決める(日付 = `JstClock.ToJstDate(回答日時)`)
    - 誤答
      - 克服済み → 無条件に苦手へ戻す。段階 0・予定日 null。MasteredAt は残す(v1.0 8.1)
-     - それ以外 → 通常問題の誤答数の**累計**が `MarkWeakAfterMistakes` 以上なら苦手、未満なら通常
+     - 苦手 → 苦手のまま(要件 R4。閾値を後から上げても誤答で苦手から外さない。⑥ レビューで修正)
+     - 初回・通常 → 通常問題の誤答数の**累計**が `MarkWeakAfterMistakes` 以上なら苦手、未満なら通常
      - どちらも連続正答 0、最後の対象正答日 null
    - 正答で初回 → 通常
    - 正答で通常 → 変化なし(連続正答は苦手の単語だけで数える)
-   - 正答で苦手 → `MasteryEvaluator`: 日本語・音声モードで、**日付が最後の対象正答日より後**(または null)なら連続正答 +1・最後の対象正答日を更新。それ以外は変化なし。連続正答が必要回数以上で克服(段階 1・予定日 = 日付 + 間隔[0]・MasteredAt = 回答日時)
+   - 正答で苦手 → `MasteryEvaluator`: 日本語・音声モードで、**日付が最後の対象正答日より後**(または null)なら連続正答 +1・最後の対象正答日を更新。それ以外は変化なし。連続正答が必要回数以上で克服(連続正答を必要回数にそろえる・段階 1・予定日 = 日付 + 間隔[0]・MasteredAt = 回答日時)
      - 同じ日の誤答のあとの正答は、リセット後の1回目として数える(2026-11-13 決定)
    - 正答で克服済み
      - 予定日が null、または日付が予定日**より前** → 記録だけ
