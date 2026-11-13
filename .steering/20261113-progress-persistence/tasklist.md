@@ -23,7 +23,7 @@
 ### 検証
 - [x] `dotnet build -warnaserror` と `dotnet test` が全件通る(Core 285 / Persistence 57。Red: Core 50件・Persistence 56件を確認してから実装)
 - [x] 受入条件(requirements.md 5.)を1つずつ確認(すべて対応するテストあり)
-- [ ] ⑥ 3体レビュー(1往復目: P0 0 / P1 9(重複込み)→ A〜D・F を修正、Core 291 / Persistence 67。E(二重起動)はユーザー確認中。2往復目の再レビュー中)
+- [ ] ⑥ 3体レビュー(1往復目: P0 0 / P1 9(重複込み)→ A〜D・F を修正、Core 291 / Persistence 67。E(二重起動)は WPF の Mutex で防ぐと決定(WPF のタスクの要件)。2往復目の再レビュー中)
 
 ### 片付け
 - [ ] P2(⑥): 警告を ProgressIssue のまま返す / Corrupt の理由を BothCorrupt・Recovered の結果に残す / JSON オプションの共通化と MakeReadOnly(LearningSettingsJson)/ 版の先読みと Parse で JSON を2回解析 / 不正な UTF-8 を Corrupt に / 50MB を超えるファイルを書けてしまう / orphan が起動のたびに増えうる / StartFresh の結果に文書を含める / Repository はスレッドセーフでない(1スレッドで使う前提を WPF のタスクへ)/ 読込の catch の範囲の理由を記録 / IFileOperations の表(Copy→CreateDirectory)を design に反映
