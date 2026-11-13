@@ -12,10 +12,11 @@ paths:
   - `Domain/` 正誤判定・差分・検証・日本時間・固定ルール(MasteryRules)
   - `Application/` 読込・出題枠の計算など、複数の部品を組み合わせる処理
   - `Settings/` 学習設定(LearningSettings)・初期値・検証・JSON 変換
-- 画面・音声・ファイル保存は `src/EikenSpelling.Wpf/` に置く。
+- ファイルの保存・読込・復旧は `src/EikenSpelling.Persistence/`(net10.0、Windows 非依存)に置く。画面・音声は `src/EikenSpelling.Wpf/`。
+  (仕様 v1.2 4章の図では Wpf/Persistence。テストを Linux でも動かすため分けた。DECISIONS.md「仕様からの差分」)
 
 ## 依存
-- 依存の向き: `Wpf → Core`、Core の中は `Application → Domain / Settings → Models`。逆向きの参照は禁止。
+- 依存の向き: `Wpf → Persistence → Core`(`Wpf → Core` も可。逆向きは禁止)、Core の中は `Application → Domain / Settings → Models`。逆向きの参照は禁止。
 - Domain → Settings の参照は認める(苦手度・克服の判定が設定値を使うため。v1.2 4章、DECISIONS.md「層の依存」)。Settings → Domain は禁止。
 - Core では次を使わない: `System.Windows.*`、ファイルの読み書き、`DateTime.Now` / `DateTime.Today`、`%APPDATA%` などの環境依存。
   時刻は `TimeProvider`、データは引数で受け取る。
@@ -26,7 +27,7 @@ paths:
 - 同じ情報・同じ処理を2か所に書かない(SSoT)。
   - 学習ルールの値の正本は `LearningSettings` の各プロパティ初期値(v1.2)。ロジックに数値を直接書かない。
   - 設定にしない固定ルールは DECISIONS.md の「固定ルール」に挙げたものだけ。
-- データの持ち主(Data Owner)以外は、そのデータを直接書き換えない。保存ファイルの持ち主は Wpf 側の Repository。
+- データの持ち主(Data Owner)以外は、そのデータを直接書き換えない。保存ファイルの持ち主は Persistence の ProgressRepository / SettingsRepository。
 
 ## 迷ったら
 - 構成を変える提案は、実装前に design.md に書いて確認を取る。

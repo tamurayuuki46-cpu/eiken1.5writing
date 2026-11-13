@@ -24,6 +24,20 @@
   問題数・その選択肢 1〜100、モードの重み 0〜100、再練習回数 0〜3、フラッシュ表示 0.1〜10秒(選択肢も同じ)、再確認間隔 1〜3650日
 - 定義外の列挙値(JSON の数値 `"manualMode": 99` など)は SettingsValidator が指摘する
 
+## 保存・復旧(2026-11-13)
+- progress.json = `{ schemaVersion, wordSetVersion, sourceVersion, progress }`(schemaVersion の正本は ProgressDocument)。セッションは次のタスクで任意項目として足す
+- 保存: tmp に書いて Flush(true) → 読み戻して変換・検査 → File.Replace(tmp, 主, bak)(初回は移動)。入出力の失敗は最大3回再試行
+- 読込の結果: Loaded / FirstRun / RecoveredFromBackup / BothCorrupt / NewerVersion / Unavailable。後ろ3つは何も書き換えない
+- 復旧は「bak の中身を tmp へ → 壊れた主を退避名へ移動 → tmp を主へ」。壊れたファイルは `<元の名前>.corrupt-<日時ミリ秒>[-n].json` で残す(上限なし)。残った tmp は `.orphan-<日時>` で残す
+- 学習記録の検査(ProgressValidator): 重大は読込失敗と同じ扱い、警告は読めるが知らせる。50MB を超えるファイルは壊れている扱い
+- 新しすぎる版: progress は保存・新規開始を拒否。settings は初期値で動かし、設定の保存を拒否
+- settings.json が壊れている・値が不正 → 初期値で動かす(ファイルは書かない)。その後の保存では壊れたファイルを退避してから保存
+- 呼び出し順: 設定の Load → 学習記録の Load。保存先フォルダは絶対パスだけ
+- 限界: Windows の File.Replace が途中で止まると、最後の1問分が orphan の tmp にだけ残ることがある
+
+## 仕様からの差分
+- 保存処理は v1.2 4章の図(`EikenSpelling.Wpf/Persistence`)ではなく、独立した `EikenSpelling.Persistence`(net10.0)に置く(2026-11-13)。本物のファイルで Linux と Windows の両方でテストするため。仕様書は直していない
+
 ## 層の依存
 - Core の中は `Application → Domain / Settings → Models`。苦手度・克服の判定のため **Domain → Settings の参照は認める**(2026-11-13、v1.2 4章)
 - Settings は Domain を参照しない
@@ -32,6 +46,7 @@
 - 正誤判定:大文字・小文字を区別しない、前後の空白を無視、途中の空白は無視しない
 - 日付:日本時間(固定 +9:00)。Core は `TimeProvider` から時刻を受け取る
 - 克服対象モード:日本語・音声(v0.1 は固定。`MasteryRules`)
+- 誤答入力は 100 文字まで記録する(`InputRules`。サロゲートペアの途中で切らない)
 
 ## 出題枠
 - 新規・苦手の端数は新規側に切り上げ(5問 → 新規3・苦手2)

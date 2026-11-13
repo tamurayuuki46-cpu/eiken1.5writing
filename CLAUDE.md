@@ -28,8 +28,10 @@ dotnet run --project src/EikenSpelling.Wpf   # 起動(Windows のみ。WPF 作�
 ```
 src/EikenSpelling.Core/   # 学習ロジック(Windows 非依存)
   Models/ Domain/ Application/ Settings/   # 層別(.claude/rules/architecture.md)
-src/EikenSpelling.Wpf/    # 画面・音声・ファイル保存(未作成)
+src/EikenSpelling.Persistence/  # 保存・読込・復旧(Windows 非依存)
+src/EikenSpelling.Wpf/    # 画面・音声(未作成)
 tests/EikenSpelling.Core.Tests/  # xUnit
+tests/EikenSpelling.Persistence.Tests/  # xUnit(一時フォルダ)
 docs/spec/                # 仕様書(正本)v1.0〜v1.2
 docs/DECISIONS.md         # コードに入っている決定の早見表
 .steering/_template/      # タスク文書の雛形。タスクごとに .steering/[日付]-[タスク]/ へコピー
@@ -65,7 +67,7 @@ prompts/8steps.md         # 8ステップの依頼文
 
 ## 8. データ・互換性
 - Schema の変更は安易に行わない。既存データがある場合は「互換性確認 → バックアップ → マイグレーション → テスト」の順。
-- 学習記録・設定のファイルの持ち主(Data Owner)は WPF 側の Repository。Core はファイルを読み書きせず、値を受け取って結果を返す。
+- 学習記録・設定のファイルの持ち主(Data Owner)は Persistence の ProgressRepository / SettingsRepository。Core はファイルを読み書きせず、値を受け取って結果を返す。
 - 保存の手順・二重記録防止・破損時の復旧は .claude/rules/database.md に従う。
 
 ## 9. してはいけないこと
@@ -82,6 +84,7 @@ prompts/8steps.md         # 8ステップの依頼文
 - 変更内容と未解決事項を短く報告する。
 
 ## 11. 学びメモ(作業のたびに追記)
+- 2026-11-13: ファイル保存は Windows 非依存の Persistence に分けると、本物のファイルで Linux でもテストできる。失敗は IFileOperations の差し替えで起こす(権限は root で効かない)。
 - 2026-11-13: クラウド環境でも NuGet に届けば .NET 10 SDK を入れて xUnit を実行できる(Core 84件通過を確認)。
 
 ## 12. 参照

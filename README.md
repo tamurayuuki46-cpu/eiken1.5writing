@@ -11,8 +11,10 @@ EikenSpelling.sln
 │   ├─ Domain/        正誤判定・差分計算・単語データ検証・日本時間・克服の固定ルール
 │   ├─ Application/   単語データ読込・出題枠の計算
 │   └─ Settings/      学習設定・初期値・設定検証・settings.json 変換
-├─ src/EikenSpelling.Wpf           … 画面・音声・ファイル保存(未作成。Windows PC 側で作る)
+├─ src/EikenSpelling.Persistence   … progress.json / settings.json の安全な保存・読込・復旧(Windows 非依存)
+├─ src/EikenSpelling.Wpf           … 画面・音声(未作成。Windows PC 側で作る)
 ├─ tests/EikenSpelling.Core.Tests  … xUnit
+├─ tests/EikenSpelling.Persistence.Tests … xUnit(一時フォルダで本物のファイルを使う)
 └─ docs/DECISIONS.md               … コードに入っている設計上の決定の早見表
 ```
 
@@ -40,7 +42,7 @@ dotnet test
 - [x] 出題枠の計算(新規/苦手/再確認、モード配分)
 - [x] 学習記録・苦手/克服判定・再確認スケジュール(苦手度の計算は保留)
 - [ ] 出題する単語の選択・セッション管理
-- [ ] 保存・復旧(WPF 側)
+- [x] 保存・復旧(progress.json / settings.json。セッションの保存は未着手)
 - [ ] WPF 画面・音声
 - [ ] 単語データ(約5,000語)の取り込み
 

@@ -1,5 +1,6 @@
 ---
 paths:
+  - "src/EikenSpelling.Persistence/**"
   - "src/EikenSpelling.Wpf/**"
   - "src/**/*Repository*.cs"
   - "src/**/*Json*.cs"
@@ -10,7 +11,10 @@ paths:
 
 ## 保存先
 - 学習記録 `%APPDATA%\EikenSpelling\progress.json`、バックアップ `progress.bak.json`、設定 `settings.json`。
-- 保存処理は Wpf 側の Repository だけが行う。Core はファイルに触れない。
+- 保存処理は Persistence の ProgressRepository / SettingsRepository だけが行う(AtomicJsonFile)。Core はファイルに触れない。
+- 読めない(ロック・権限)と壊れている(変換・検査の失敗)を分ける。読めないときは再試行し、駄目なら何も書き換えない。
+- バックアップから復旧するときは、壊れた主ファイルを退避名へ「移動」してから bak の中身で主を作り直す(次の保存で正常な主が bak に回る)。
+- 新しすぎる版のファイルは上書きも復旧もしない。
 
 ## 保存の手順(v1.0 13.7)
 1. 一時ファイルへ書き込む
