@@ -17,7 +17,7 @@
 | Core/Application/SessionValidator.cs | セッションの検査(不備があればセッションだけ捨てる) | 新規 |
 | Core/Models/ProgressDocument.cs → Core/Application/ProgressDocument.cs | 層のルールに合わせて Application へ移し、`PracticeSession? Session` を足す(2026-11-13 決定) | 移動・変更 |
 | Core/Domain/ProgressValidator.cs | `Validate(ProgressDocument …)` の形を削除(Domain から Application を参照しないため)。学習記録の検査はそのまま | 変更 |
-| Persistence/ProgressRepository.cs | 読込時にセッションを検査し、不備ならセッションだけ捨てて知らせる(`SessionDiscarded`・警告)。壊れたファイルの写しを退避名で残す。読込後に answerId を整理 | 変更 |
+| Persistence/ProgressRepository.cs | 読込時にセッションを検査し、不備ならセッションだけ捨てて知らせる(`SessionDiscarded`・警告)。壊れたファイルの写しを退避名で残す。読込後に answerId を整理。保存前にもセッションを検査し、不正なら保存しない | 変更 |
 | Persistence/AtomicJsonFile.cs | `PreserveMainCopy()`(主ファイルの写しを退避名で書く) | 変更 |
 | docs/DECISIONS.md / .claude/rules/architecture.md | セッションの決定、保存失敗時の約束、ProgressDocument の置き場所 | 変更 |
 

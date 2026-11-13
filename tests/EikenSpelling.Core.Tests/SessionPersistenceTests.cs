@@ -114,6 +114,29 @@ public class SessionValidatorTests
 
     private static bool Invalid(PracticeSession s, LearningProgress p) => SessionValidator.Validate(s, p).Count > 0;
 
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(3, true)]
+    [InlineData(1, false)]
+    [InlineData(3, false)]
+    public void Every_session_to_save_passes_validation(int retry, bool autoMix)
+    {
+        // 検査が正常なセッションを誤って不正にすると、すべての保存が止まる。開始から完了直前まで毎回確かめる
+        var settings = S.Settings(retry, autoMix, manual: Japanese);
+        var plan = new[] { S.Q("a"), S.Q("b", Japanese, Japanese, Blank), S.Q("c", Japanese, Japanese) };
+        var r = new Runner(S.Start(settings, plan));
+        Assert.Empty(SessionValidator.Validate(r.Session, r.Progress));
+        var i = 0;
+        while (!r.Session.IsCompleted)
+        {
+            var result = r.Answer(i++ % 3 == 1); // 正誤を混ぜる
+            if (result.SessionToSave is { } toSave)
+            {
+                Assert.Empty(SessionValidator.Validate(toSave, result.Progress));
+            }
+        }
+    }
+
     [Fact]
     public void Valid_session_has_no_problems()
     {
@@ -202,6 +225,7 @@ public class SessionValidatorTests
         var (s, p) = Valid();
 
         Assert.True(Invalid(s with { Answers = s.Answers.SetItem(0, s.Answers[0] with { StateAfter = (LearningState)9 }) }, p));
+        Assert.True(Invalid(s with { Answers = s.Answers.SetItem(0, s.Answers[0] with { StateBefore = (LearningState)9 }) }, p));
     }
 
     [Fact]

@@ -1,9 +1,9 @@
 # tasklist.md — セッション管理(途中終了・再開)
 
 ## 状態
-- フェーズ: 検証(⑥ 3体レビュー待ち)
+- フェーズ: 検証完了(⑦ PR)
 - 最終更新: 2026-11-13
-- 次にやること: ⑥ 実装の3体レビュー
+- 次にやること: ⑦ PR を作って main へ
 
 ## タスク
 ### 準備
@@ -22,7 +22,7 @@
 ### 検証
 - [x] `dotnet build -warnaserror` と `dotnet test` が全件通る(Core 358 / Persistence 72。Red 69件を確認してから実装)
 - [x] 受入条件(requirements.md 5.)を1つずつ確認(すべて対応するテストあり)
-- [ ] ⑥ 3体レビュー(1往復目: P0 0 / P1 5(重複込み)→ 修正、Core 364 / Persistence 75。2往復目の再レビュー中)
+- [x] ⑥ 3体レビュー(1往復目: P1 5 → 修正。2往復目: 通過(P2 3件のうち、全状態の検査テスト・StateBefore のテスト・design の表を反映)。P0・P1 残りなし)
 
 ### 片付け
 - [ ] P2(⑥): 完了・中止の整理を PruneAnswerIds(null) に揃えて RemoveSession を削除 / 型を1ファイル1つに分ける(design.md の表と合わせる)/ null 確認の重複(ReadSession と SessionValidator)/ CheckQuestion を SessionValidator へ / _discarded を FileRead の旗にする / Completed と SessionToSave is null の重複 / SessionSummary(結果画面用の集計)/ 穴あきの入力が単語全体か欠けた文字か(QuestionSelector・WPF で確認)/ 深い JSON・重複キーで全体が壊れている扱い(限界)/ 綴りの写しと単語データの照合(WPF・QuestionSelector)/ 完了直後に古いセッションで Answer を呼ぶと重複を検出できない(約束で防ぐ限界)/ 既定値に依存したテスト2件 / Save の結果を Assert していないテスト / 復旧時のセッション破棄・Load 2回のテスト / RetryCount 3・4 の Start テスト / InvalidDataException の内側の文言をログに出す扱い
