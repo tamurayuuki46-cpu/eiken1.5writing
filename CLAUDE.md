@@ -85,6 +85,7 @@ prompts/8steps.md         # 8ステップの依頼文
 - 変更内容と未解決事項を短く報告する。
 
 ## 11. 学びメモ(作業のたびに追記)
+- 2026-11-13: ImmutableArray を Assert.Equal で比べると参照比較になる。.ToArray() か SequenceEqual で比べる。
 - 2026-11-13: ファイル保存は Windows 非依存の Persistence に分けると、本物のファイルで Linux でもテストできる。失敗は IFileOperations の差し替えで起こす(権限は root で効かない)。
 - 2026-11-13: クラウド環境でも NuGet に届けば .NET 10 SDK を入れて xUnit を実行できる(Core 84件通過を確認)。
 

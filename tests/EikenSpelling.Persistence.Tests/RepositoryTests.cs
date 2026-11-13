@@ -34,7 +34,7 @@ public class ProgressRepositoryTests
         Assert.Equal(LoadStatus.Loaded, load.Status);
         Assert.Equal("ws-1", load.Document!.WordSetVersion);
         Assert.Equal(LearningState.Weak, load.Document.Progress.Word("tax")!.State);
-        Assert.Single(load.Document.Progress.AppliedAnswerIds);
+        Assert.Empty(load.Document.Progress.AppliedAnswerIds); // 未完了のセッションが無いので、読込時に整理される(session-management)
     }
 
     [Fact]
@@ -378,5 +378,128 @@ public class SettingsRepositoryTests
         repo.Save(Custom());
 
         Assert.Equal("progress-content", dir.Read("progress.json"));
+    }
+}
+
+/// <summary>progress.json のセッション(session-management design.md 4章「読込」)。</summary>
+public class ProgressRepositorySessionTests
+{
+    private static readonly DateTimeOffset Now = new(2026, 11, 13, 12, 0, 0, TimeSpan.FromHours(9));
+    private static readonly LearningSettings Settings = DefaultSettings.Create();
+
+    private static ProgressRepository Repo(TempDir dir) => new(dir.Path, new FixedTimeProvider(Now), retryDelay: TimeSpan.Zero);
+
+    private static (PracticeSession Session, LearningProgress Progress) Started()
+    {
+        var plan = new PlannedQuestion[] { new("a", "a", LearningMode.Japanese, [LearningMode.Japanese, LearningMode.Audio]), new("b", "b", LearningMode.Audio, [LearningMode.Audio]) };
+        var session = SessionManager.Start(Guid.NewGuid(), Now.AddMinutes(-10), plan, Settings);
+        var r = SessionManager.Answer(session, LearningProgress.Empty, "ax", Now.AddMinutes(-5));
+        return (r.SessionToSave!, r.Progress);
+    }
+
+    [Fact]
+    public void Session_survives_save_and_load()
+    {
+        using var dir = new TempDir();
+        var (session, progress) = Started();
+        var repo = Repo(dir);
+        repo.Load(Settings);
+        repo.Save(new ProgressDocument { Progress = progress, Session = session });
+
+        var load = Repo(dir).Load(Settings);
+
+        Assert.Equal(LoadStatus.Loaded, load.Status);
+        Assert.False(load.SessionDiscarded);
+        Assert.Equal(session.SessionId, load.Document!.Session!.SessionId);
+        Assert.Equal(1, load.Document.Session.Position);
+        Assert.Single(load.Document.Progress.AppliedAnswerIds); // 今のセッションの分は残る
+    }
+
+    [Fact]
+    public void Answer_ids_of_other_sessions_are_pruned_on_load()
+    {
+        using var dir = new TempDir();
+        var (_, progress) = Started();
+        var repo = Repo(dir);
+        repo.Load(Settings);
+        repo.Save(new ProgressDocument { Progress = progress, Session = null }); // セッションなし = 残す分なし
+
+        var load = Repo(dir).Load(Settings);
+
+        Assert.Empty(load.Document!.Progress.AppliedAnswerIds);
+        Assert.Equal(LearningState.Weak, load.Document.Progress.Word("a")!.State);
+    }
+
+    [Theory]
+    [InlineData(true)]  // JSON として読めないセッション
+    [InlineData(false)] // 読めるが検査で不備(完了済み)
+    public void Broken_session_is_dropped_and_progress_is_loaded(bool unreadable)
+    {
+        using var dir = new TempDir();
+        var (session, progress) = Started();
+        var broken = session with { Answers = session.Answers.Add(new SessionAnswer(true, null, LearningState.Normal)) };
+        var json = ProgressJson.Serialize(new ProgressDocument { Progress = progress, Session = broken });
+        if (unreadable)
+        {
+            json = json.Replace("\"startedAt\"", "\"startedAtX\"", StringComparison.Ordinal); // セッションの必須項目を欠かせる
+        }
+
+        dir.Write("progress.json", json);
+
+        var load = Repo(dir).Load(Settings);
+
+        Assert.Equal(LoadStatus.Loaded, load.Status);
+        Assert.True(load.SessionDiscarded);
+        Assert.Null(load.Document!.Session);
+        Assert.NotEmpty(load.Warnings);
+        Assert.Equal(LearningState.Weak, load.Document.Progress.Word("a")!.State);
+        Assert.Contains(dir.Names(), n => n.StartsWith("progress.json.corrupt-", StringComparison.Ordinal)); // 写しを残す
+        Assert.Equal(json, dir.Read("progress.json")); // 主ファイルは読込では書き換えない
+    }
+
+    [Fact]
+    public void Save_with_invalid_session_fails_and_keeps_file()
+    {
+        using var dir = new TempDir();
+        var (session, progress) = Started();
+        var repo = Repo(dir);
+        repo.Load(Settings);
+        Assert.True(repo.Save(new ProgressDocument { Progress = progress, Session = session }).Succeeded);
+        var before = dir.Snapshot();
+        var completed = session with { Answers = session.Answers.Add(new SessionAnswer(true, null, LearningState.Normal)) };
+
+        Assert.False(repo.Save(new ProgressDocument { Progress = progress, Session = completed }).Succeeded);
+        Assert.Equal(before, dir.Snapshot());
+    }
+
+    [Fact]
+    public void Load_keeps_current_session_ids_and_prunes_others()
+    {
+        using var dir = new TempDir();
+        var (session, progress) = Started();
+        var other = new AnswerId(Guid.NewGuid(), 0, AttemptType.Normal);
+        var repo = Repo(dir);
+        repo.Load(Settings);
+        Assert.True(repo.Save(new ProgressDocument { Progress = progress with { AppliedAnswerIds = progress.AppliedAnswerIds.Add(other) }, Session = session }).Succeeded);
+
+        var load = Repo(dir).Load(Settings);
+
+        Assert.Equal([new AnswerId(session.SessionId, 0, AttemptType.Normal)], load.Document!.Progress.AppliedAnswerIds);
+    }
+
+    [Fact]
+    public void Warning_says_when_copy_could_not_be_kept()
+    {
+        using var dir = new TempDir();
+        var (session, progress) = Started();
+        var broken = session with { Answers = session.Answers.Add(new SessionAnswer(true, null, LearningState.Normal)) };
+        dir.Write("progress.json", ProgressJson.Serialize(new ProgressDocument { Progress = progress, Session = broken }));
+        var faulty = new FaultyFileOperations();
+        faulty.Faults["WriteAndFlush"] = (1, int.MaxValue);
+
+        var load = new ProgressRepository(dir.Path, new FixedTimeProvider(Now), faulty, TimeSpan.Zero).Load(Settings);
+
+        Assert.True(load.SessionDiscarded);
+        Assert.Contains(load.Warnings, w => w.Contains("写しを残せません", StringComparison.Ordinal));
     }
 }

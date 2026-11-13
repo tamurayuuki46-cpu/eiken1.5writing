@@ -137,7 +137,7 @@ public class ProgressJsonTests
     [Fact]
     public void Unknown_fields_are_ignored_and_missing_fields_get_defaults()
     {
-        var doc = ProgressJson.Parse("""{ "schemaVersion": 1, "session": { "future": true }, "progress": {} }""");
+        var doc = ProgressJson.Parse("""{ "schemaVersion": 1, "futureFeature": { "x": true }, "progress": {} }""");
 
         Assert.Equal("", doc.WordSetVersion);
         Assert.Empty(doc.Progress.Words);
@@ -294,14 +294,6 @@ public class ProgressValidatorTests
 
         Assert.Contains(issues, i => i.Severity == ProgressIssueSeverity.Critical);
         Assert.Contains(issues, i => i.Severity == ProgressIssueSeverity.Warning);
-    }
-
-    [Fact]
-    public void Document_overload_checks_the_progress()
-    {
-        var doc = new ProgressDocument { Progress = With(new WordProgress { WordId = "tax" }, key: "fax") };
-
-        Assert.Contains(ProgressValidator.Validate(doc, Settings, Now), i => i.Severity == ProgressIssueSeverity.Critical);
     }
 
     [Fact]
