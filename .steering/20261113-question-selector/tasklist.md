@@ -1,16 +1,16 @@
 # tasklist.md — 出題する単語の選択(QuestionSelector)
 
 ## 状態
-- フェーズ: 設計(②③ レビュー中)
+- フェーズ: 実装(tdd)
 - 最終更新: 2026-11-13
-- 次にやること: ②③ の結果を報告し、P0・P1 を設計に反映
+- 次にやること: T1〜T4 を tdd で実装
 
 ## タスク
 ### 準備
 - [x] requirements.md を確認してもらう
 - [x] design.md を確認してもらう(【要確認】1〜5 は案どおり確定)
-- [ ] ② プランのレビュー(design-reviewer・security-reviewer)
-- [ ] ③ テスト計画のレビュー(edge-case-reviewer)
+- [x] ② プランのレビュー(design-reviewer・security-reviewer)— P1 9 を反映、3点はユーザーが決定
+- [x] ③ テスト計画のレビュー(edge-case-reviewer)— P0 1・P1 13 を反映
 
 ### 実装(tdd スキル)
 - [ ] T1: WeakWordScorer
@@ -24,6 +24,7 @@
 - [ ] ⑥ 3体レビュー(P0・P1 が残っていない)
 
 ### 片付け
+- [ ] P2(②③): LastWrongAt に再練習を含める理由を DECISIONS.md に / Tier 別の優先順位(v1.2 2章 B)は将来
 - [ ] decisions.md の決定を docs/DECISIONS.md へ
 - [ ] 学びを CLAUDE.md の「学びメモ」に1行追記
 
