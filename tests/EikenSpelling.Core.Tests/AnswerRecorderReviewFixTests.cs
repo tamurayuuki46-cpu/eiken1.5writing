@@ -22,6 +22,27 @@ public class AnswerRecorderReviewFixTests
         Assert.Equal(LearningState.Weak, r.StateAfter);
     }
 
+    [Theory]
+    [InlineData(false)] // 期限前
+    [InlineData(true)]  // 期限後
+    public void Mastered_word_returns_to_weak_on_mistake_even_with_high_threshold(bool afterDue)
+    {
+        var l = new Learner();
+        var masteredOn = l.MakeMastered("tax", D);
+        var masteredAt = l.Word("tax").MasteredAt;
+        var due = l.Word("tax").NextReviewDate!.Value;
+        l.Settings = l.Settings with { WeakWordScore = l.Settings.WeakWordScore with { MarkWeakAfterMistakes = 5 } };
+
+        var r = l.Answer("tax", Blank, false, Jst.At(afterDue ? due.AddDays(1) : masteredOn.AddDays(1)));
+
+        Assert.Equal(LearningState.Weak, r.StateAfter);
+        Assert.True(r.ReturnedToWeak);
+        var w = l.Word("tax");
+        Assert.Equal(0, w.ReviewStage);
+        Assert.Null(w.NextReviewDate);
+        Assert.Equal(masteredAt, w.MasteredAt);
+    }
+
     [Fact]
     public void Streak_equals_required_days_when_mastered_after_lowering()
     {
