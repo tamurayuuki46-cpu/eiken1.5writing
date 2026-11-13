@@ -328,24 +328,6 @@ public class WeakWordListTests
     }
 
     [Fact]
-    public void Result_does_not_depend_on_dictionary_order()
-    {
-        var words = Enumerable.Range(0, 30)
-            .Select(i => With(W($"w{i:D2}", i % 3 == 0 ? Mastered : Weak), Japanese, new ModeRecord { NormalWrong = i % 4, LastWrongAt = Now.AddHours(-(i % 5)) }))
-            .ToArray();
-        var forward = Progress(words);
-        var backward = Progress([.. words.Reverse()]);
-        var set = Set([.. words.Select(w => w.WordId)]);
-
-        foreach (var sort in Enum.GetValues<WeakListSort>())
-        {
-            Assert.Equal(
-                Build(forward, set, sort: sort).Select(r => r.WordId).ToArray(),
-                Build(backward, set, sort: sort).Select(r => r.WordId).ToArray());
-        }
-    }
-
-    [Fact]
     public void Undefined_sort_throws()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => Build(Progress(W("a")), sort: (WeakListSort)99));

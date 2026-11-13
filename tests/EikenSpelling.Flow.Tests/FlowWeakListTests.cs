@@ -216,7 +216,7 @@ public class FlowWeakListTests
         var changed = flow.As<WeakListScreen>();
         Assert.Null(changed.Message);
         Assert.Null(changed.Diagnostic);
-        flow.BackToHome(); // 失敗した開始はメモリにも残っていない(ホームになれる)
+        flow.BackToHome(); // 保存に失敗した後も一覧からホームへ戻れる
         Assert.Equal(1, flow.As<HomeScreen>().Status.Weak);
         flow.OpenWeakList();
 
@@ -232,7 +232,7 @@ public class FlowWeakListTests
         var flow = env.Start();
         Assert.Equal(new StudyStatus(5, 0, 0, 0, 0), flow.As<HomeScreen>().Status);
         flow.StartPractice(Choices.Manual(Japanese, 3));
-        flow.AnswerCurrent(false); // 1語が苦手に
+        flow.AnswerCurrent(false); // 1語が苦手に(既定の MarkWeakAfterMistakes = 1 が前提)
         flow.Next();
         flow.AnswerCurrent(true); // 1語が通常に
         flow.Next();
