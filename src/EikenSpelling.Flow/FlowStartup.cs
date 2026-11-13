@@ -16,6 +16,7 @@ internal sealed record StartupResult(
     FlowScreen? Stop,
     ImmutableArray<string> Notices,
     LearningSettings Settings,
+    SettingsRepository? SettingsRepository,
     WordSet? WordSet,
     ProgressRepository? Repository,
     ProgressDocument? Document);
@@ -38,7 +39,8 @@ internal static class FlowStartup
 
         var notices = ImmutableArray.CreateBuilder<string>();
 
-        var settingsLoad = new SettingsRepository(directory, options.Time, options.Files, options.RetryDelay).Load();
+        var settingsRepository = new SettingsRepository(directory, options.Time, options.Files, options.RetryDelay);
+        var settingsLoad = settingsRepository.Load();
         var settings = settingsLoad.Settings;
         var settingsNotice = settingsLoad.Status switch
         {
@@ -56,7 +58,7 @@ internal static class FlowStartup
         var wordSet = ReadWordSet(options.WordSetJson);
         if (wordSet is null)
         {
-            return Stop(new FatalScreen(FatalKind.WordSetInvalid, "単語データを読み込めません。アプリを入れ直してください。"), [], settings);
+            return Stop(new FatalScreen(FatalKind.WordSetInvalid, "単語データを読み込めません。アプリを入れ直してください。"), [], settings, settingsRepository);
         }
 
         var repository = new ProgressRepository(directory, options.Time, options.Files, options.RetryDelay);
@@ -73,7 +75,7 @@ internal static class FlowStartup
         if (stop is not null)
         {
             var kept = stop is BothCorruptScreen ? notices.ToImmutable() : [];
-            return new(stop with { Diagnostic = load.Reason }, kept, settings, wordSet, repository, null);
+            return new(stop with { Diagnostic = load.Reason }, kept, settings, settingsRepository, wordSet, repository, null);
         }
 
         if (load.Status == LoadStatus.RecoveredFromBackup)
@@ -83,7 +85,7 @@ internal static class FlowStartup
 
         // 単語ごとの警告は同じ文言が並びうるのでまとめる
         notices.AddRange(load.Warnings.Distinct(StringComparer.Ordinal));
-        return new(null, notices.ToImmutable(), settings, wordSet, repository, load.Document ?? new ProgressDocument());
+        return new(null, notices.ToImmutable(), settings, settingsRepository, wordSet, repository, load.Document ?? new ProgressDocument());
     }
 
     private static WordSet? ReadWordSet(string? json)
@@ -106,6 +108,7 @@ internal static class FlowStartup
         return WordSetValidator.Validate(set).Any(i => i.Severity == ValidationSeverity.Error) ? null : set;
     }
 
-    private static StartupResult Stop(FlowScreen screen, ImmutableArray<string> notices, LearningSettings settings) =>
-        new(screen, notices, settings, null, null, null);
+    private static StartupResult Stop(
+        FlowScreen screen, ImmutableArray<string> notices, LearningSettings settings, SettingsRepository? settingsRepository = null) =>
+        new(screen, notices, settings, settingsRepository, null, null, null);
 }

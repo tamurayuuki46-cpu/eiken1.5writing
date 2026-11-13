@@ -21,12 +21,18 @@ public class FlowInvalidOperationTests
         ChangeWeakList,
         StartWeakPractice,
         BackToHome,
+        OpenSettings,
+        SaveSettings,
+        ResetSettings,
+        CloseSettings,
     }
 
     public enum At
     {
         Home,
         WeakList,
+        Settings,
+        SettingsCannotSave,
         ResumePrompt,
         ResumePromptCannotResume,
         Question,
@@ -42,7 +48,9 @@ public class FlowInvalidOperationTests
 
     private static readonly Dictionary<At, Op[]> Allowed = new()
     {
-        [At.Home] = [Op.StartPractice, Op.OpenWeakList],
+        [At.Home] = [Op.StartPractice, Op.OpenWeakList, Op.OpenSettings],
+        [At.Settings] = [Op.SaveSettings, Op.ResetSettings, Op.CloseSettings],
+        [At.SettingsCannotSave] = [Op.ResetSettings, Op.CloseSettings],
         [At.WeakList] = [Op.ChangeWeakList, Op.StartWeakPractice, Op.BackToHome],
         [At.ResumePrompt] = [Op.Resume, Op.Discard],
         [At.ResumePromptCannotResume] = [Op.Discard],
@@ -115,6 +123,11 @@ public class FlowInvalidOperationTests
                 return PracticeFlow.Start(env.Options() with { DataDirectory = "relative" });
             case At.FatalWordSet:
                 return PracticeFlow.Start(env.Options() with { WordSetJson = "{ broken" });
+            case At.SettingsCannotSave:
+                env.Dir.Write(SettingsRepository.FileName, """{ "settingsVersion": 99 }""");
+                var newer = env.Start();
+                newer.OpenSettings();
+                return newer;
             case At.ResumePromptCannotResume:
                 env.Start().StartPractice(Choices.Auto(count: 1));
                 env.WordsJson = Words.Json(new TestWord("zzz"));
@@ -124,6 +137,12 @@ public class FlowInvalidOperationTests
         var flow = env.Start();
         if (at == At.Home)
         {
+            return flow;
+        }
+
+        if (at == At.Settings)
+        {
+            flow.OpenSettings();
             return flow;
         }
 
@@ -173,6 +192,10 @@ public class FlowInvalidOperationTests
             case Op.ChangeWeakList: flow.ChangeWeakList(Core.Application.WeakListSort.RecentMistake, true); break;
             case Op.StartWeakPractice: flow.StartWeakPractice(Choices.Auto()); break;
             case Op.BackToHome: flow.BackToHome(); break;
+            case Op.OpenSettings: flow.OpenSettings(); break;
+            case Op.SaveSettings: flow.SaveSettings(Choices.Auto(count: 20)); break;
+            case Op.ResetSettings: flow.ResetSettings(); break;
+            case Op.CloseSettings: flow.CloseSettings(); break;
         }
     }
 }

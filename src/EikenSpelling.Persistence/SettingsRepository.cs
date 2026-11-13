@@ -32,6 +32,15 @@ public sealed class SettingsRepository
         _file = new AtomicJsonFile<LearningSettings>(directory, FileName, Read, _files, time, retryDelay);
     }
 
+    /// <summary>最後の読込の結果(保存に成功すると Loaded)。読込前は null。</summary>
+    public LoadStatus? Status => _state;
+
+    /// <summary>
+    /// 保存できるか(「保存できるか」の正本)。読込前・新しい版・読めないときは偽。
+    /// 壊れていて初期値で動いているとき(BothCorrupt)は真(壊れたファイルを退避してから保存する)。
+    /// </summary>
+    public bool CanSave => _state is not (null or LoadStatus.NewerVersion or LoadStatus.Unavailable);
+
     public SettingsLoadResult Load()
     {
         try
@@ -56,7 +65,7 @@ public sealed class SettingsRepository
     public SettingsSaveResult Save(LearningSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        if (_state is null or LoadStatus.NewerVersion or LoadStatus.Unavailable)
+        if (!CanSave)
         {
             return new(SettingsSaveStatus.Failed, [], _state is null
                 ? "先に設定を読み込んでください。"
