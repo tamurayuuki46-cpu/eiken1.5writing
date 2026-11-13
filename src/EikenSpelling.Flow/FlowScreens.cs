@@ -22,7 +22,20 @@ public abstract record FlowScreen
     public string? Diagnostic { get; init; }
 }
 
-public sealed record HomeScreen(SelectionEmptyReason EmptyReason = SelectionEmptyReason.None, string? Message = null) : FlowScreen;
+/// <summary>ホーム。Status は今の学習記録から作った学習状況(単語データを読む前は StudyStatus.Empty)。</summary>
+public sealed record HomeScreen(
+    StudyStatus Status, SelectionEmptyReason EmptyReason = SelectionEmptyReason.None, string? Message = null) : FlowScreen;
+
+/// <summary>
+/// 苦手一覧(v1.0 11.4)。Rows の LastWrongInput は利用者が打った文字列(表示用)。画面の状態をログに出さないこと。
+/// EmptyReason・Message・Diagnostic は直前の開始が0語・保存失敗だったときだけ持つ。
+/// </summary>
+public sealed record WeakListScreen(
+    ImmutableArray<WeakWordRow> Rows,
+    WeakListSort Sort,
+    bool WeakOnly,
+    SelectionEmptyReason EmptyReason = SelectionEmptyReason.None,
+    string? Message = null) : FlowScreen;
 
 public sealed record ResumeSummary(DateTimeOffset StartedAt, int Answered, int Total);
 
