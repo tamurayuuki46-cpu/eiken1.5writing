@@ -269,6 +269,64 @@ public class WeakWordListTests
         Assert.Equal(["max", "future", "new", "old", "tieB", "none"], rows.Select(r => r.WordId));
     }
 
+    // 同点の決め手が単語ID(Ordinal)であることを、同点の語を多数並べて確かめる
+    // (辞書の列挙順はハッシュで決まり、入れる順を変えても変わらないため、入れる順の比較では決め手の抜けを検出できない)
+    private static readonly string[] TiedIds =
+        ["m", "B", "a", "c10", "c2", "Z", "b", "c1", "A", "k", "x", "Q", "d", "e9", "e10", "y"];
+
+    private static string[] Ordinal(IEnumerable<string> ids) => [.. ids.Order(StringComparer.Ordinal)];
+
+    [Fact]
+    public void Recent_mistake_ties_are_ordered_by_word_id()
+    {
+        var at = Now.AddHours(-1);
+        var rows = Build(
+            Progress([.. TiedIds.Select(id => With(W(id), Japanese, new ModeRecord { NormalWrong = 1, LastWrongAt = at }))]),
+            Set(TiedIds), sort: WeakListSort.RecentMistake);
+
+        Assert.Equal(Ordinal(TiedIds), rows.Select(r => r.WordId).ToArray());
+    }
+
+    [Fact]
+    public void Recent_mistake_words_without_mistake_are_last_by_word_id()
+    {
+        var rows = Build(Progress([.. TiedIds.Select(id => W(id))]), Set(TiedIds), sort: WeakListSort.RecentMistake);
+
+        Assert.Equal(Ordinal(TiedIds), rows.Select(r => r.WordId).ToArray());
+    }
+
+    [Fact]
+    public void Weak_first_ties_among_weak_words_are_ordered_by_word_id()
+    {
+        var rows = Build(Progress([.. TiedIds.Select(id => W(id))]), Set(TiedIds));
+
+        Assert.Equal(Ordinal(TiedIds), rows.Select(r => r.WordId).ToArray());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Weak_first_ties_among_mastered_words_are_ordered_by_word_id(bool withDate)
+    {
+        DateOnly? date = withDate ? Today.AddDays(3) : null;
+        var rows = Build(Progress([.. TiedIds.Select(id => W(id, Mastered) with { NextReviewDate = date })]), Set(TiedIds));
+
+        Assert.Equal(Ordinal(TiedIds), rows.Select(r => r.WordId).ToArray());
+    }
+
+    [Fact]
+    public void Extreme_dates_do_not_throw()
+    {
+        var rows = Build(Progress(
+            W("a", Mastered) with { NextReviewDate = DateOnly.MaxValue },
+            W("b") with { LastNormalAskedAt = DateTimeOffset.MaxValue, LastEligibleCorrectDate = DateOnly.MaxValue, MasteryStreak = 1 },
+            W("c") with { LastNormalAskedAt = Now.AddDays(30) }));
+
+        Assert.Equal(3, rows.Length);
+        Assert.False(rows.Single(r => r.WordId == "a").ReviewDue);
+        Assert.Equal("a", rows[^1].WordId); // 克服済みは苦手の後ろ
+    }
+
     [Fact]
     public void Result_does_not_depend_on_dictionary_order()
     {

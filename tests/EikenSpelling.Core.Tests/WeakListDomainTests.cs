@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 using EikenSpelling.Core.Domain;
 using EikenSpelling.Core.Models;
 
@@ -21,9 +23,44 @@ public class JstClockTryToJstTests
     }
 
     [Fact]
+    public void Last_convertible_moment_is_nine_hours_before_max()
+    {
+        var last = DateTimeOffset.MaxValue.AddHours(-9);
+
+        Assert.NotNull(JstClock.TryToJst(last));
+        Assert.Null(JstClock.TryToJst(last.AddTicks(1)));
+    }
+
+    [Fact]
     public void Min_value_moves_forward_and_converts()
     {
         Assert.Equal(DateTimeOffset.MinValue, JstClock.TryToJst(DateTimeOffset.MinValue));
+    }
+}
+
+public class LatestMistakeTests
+{
+    private static readonly DateTimeOffset At = new(2026, 11, 1, 10, 0, 0, TimeSpan.FromHours(9));
+
+    [Fact]
+    public void No_mistakes_is_null()
+    {
+        Assert.Null(LatestMistake.Of(new WordProgress { WordId = "a" }));
+    }
+
+    [Fact]
+    public void Latest_moment_wins_and_same_moment_uses_mode_order()
+    {
+        var word = new WordProgress
+        {
+            WordId = "a",
+            Modes = ImmutableDictionary<LearningMode, ModeRecord>.Empty
+                .Add(LearningMode.Flash, new ModeRecord { LastWrongAt = At.AddMinutes(1), LastWrongInput = "f" })
+                .Add(LearningMode.Blank, new ModeRecord { LastWrongAt = At.AddMinutes(1).ToUniversalTime(), LastWrongInput = "b" })
+                .Add(LearningMode.Japanese, new ModeRecord { LastWrongAt = At, LastWrongInput = "j" }),
+        };
+
+        Assert.Equal(new LatestMistake(LearningMode.Blank, At.AddMinutes(1).ToUniversalTime(), "b"), LatestMistake.Of(word));
     }
 }
 

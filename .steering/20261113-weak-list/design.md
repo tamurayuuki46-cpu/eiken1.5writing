@@ -52,7 +52,7 @@
     - RemainingForMastery = max(必要回数 − 連続正答, 1)。連続正答が必要回数以上で苦手に残っている記録(必要回数を後から下げた)も、次に別の日に対象正答すれば克服になるため最低1(MasteryEvaluator の判定と一致)
     - CountedToday(`MasteryRules.CountedToday`)
     - WeakScore(`WeakWordScorer.Score`。並びの理由を見せる用)
-  - 克服済みのとき(Weak では null。苦手に戻った単語の古い予定日は出さない): NextReviewDate、ReviewDue(IsDue)
+  - 克服済みのとき(Weak では null。苦手の単語に予定日がある記録は ProgressValidator が重大として弾くが、防御として出さない): NextReviewDate、ReviewDue(IsDue)
   - `ToString` は誤答入力を伏せる(record の自動生成ではログ・バインドエラーに入力が出るため)
 - 並べ方:
   - `WeakFirst`(既定、苦手度の順): 苦手は `WeakWordScorer.Order` の並び → 克服済みは NextReviewDate の早い順(null は最後)→ WordId
@@ -83,7 +83,7 @@
     - 対象: 通常・未出題は出ない、weakOnly で克服済みが消える、単語データに無い単語は ID と InWordSet = false
     - 誤答回数に再練習を含めない(通常の誤答0で再練習の誤答だけある苦手単語 → 0、最後の誤答は再練習のもの)
     - 正答率: 通常問題で未出題のモードは null(再練習だけのモードも null)
-    - 最後の誤答: 複数モードで最新を選ぶ / 同じ時点(オフセット違いを含む)はモードの順 / 入力は 100 文字に切る / LastWrongAt が MaxValue・MinValue でも例外にならず日時は null
+    - 最後の誤答: 複数モードで最新を選ぶ / 同じ時点(オフセット違いを含む)はモードの順 / 入力は 100 文字に切る / LastWrongAt が MaxValue でも例外にならず日時は null(MinValue は +9 時間で直せる)
     - 残り回数: 必要回数 3 で連続正答 0/1/2/3/4 → 3/2/1/1/1、必要回数 1 で連続正答 0 → 1。WeakScore は WeakWordScorer.Score と一致
     - CountedToday: now を日本時間 0:00 の前後(14:59:59Z と 15:00:00Z)にして切り替わる
     - 克服済み: 再確認日と ReviewDue(予定日の前日・当日、日本時間 0:00 前後)/ 予定日なし(並びの最後、複数なら WordId 順)/ DateOnly.MaxValue

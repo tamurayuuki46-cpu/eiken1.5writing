@@ -243,8 +243,9 @@ public sealed class PracticeFlow
             return (SelectionEmptyReason.None, saved);
         }
 
+        var question = QuestionScreenFor(session); // 先に作る(例外なら文書も画面も変えない)
         _document = started;
-        Screen = QuestionScreenFor(session);
+        Screen = question;
         return (SelectionEmptyReason.None, null);
     }
 

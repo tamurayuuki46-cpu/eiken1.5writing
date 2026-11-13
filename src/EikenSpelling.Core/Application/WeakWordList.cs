@@ -46,6 +46,7 @@ public sealed record WeakWordRow(
 /// <summary>苦手一覧(weak-list design 4.2)。学習記録は読むだけ。</summary>
 public static class WeakWordList
 {
+    /// <summary>単語データは WordSetValidator を通したもの(ID の重複なし。重複があると例外)が前提。</summary>
     public static ImmutableArray<WeakWordRow> Build(
         LearningProgress progress, WordSet wordSet, LearningSettings settings, DateTimeOffset now, WeakListSort sort, bool weakOnly)
     {
@@ -63,7 +64,7 @@ public static class WeakWordList
         var mastered = weakOnly ? [] : progress.Words.Values.Where(w => w.State == LearningState.Mastered).ToList();
 
         // 並べる前の基準(最後の誤答の時点)は表示用の行とは別に持つ(極端な日時は表示では null になるため)
-        IEnumerable<(WordProgress Word, Mistake? Last)> ordered = sort switch
+        IEnumerable<(WordProgress Word, LatestMistake? Last)> ordered = sort switch
         {
             WeakListSort.WeakFirst =>
                 WeakWordScorer.Order(weak, settings, now)
@@ -71,9 +72,9 @@ public static class WeakWordList
                         .OrderBy(w => w.NextReviewDate is null ? 1 : 0)
                         .ThenBy(w => w.NextReviewDate)
                         .ThenBy(w => w.WordId, StringComparer.Ordinal))
-                    .Select(w => (w, LastMistake(w))),
+                    .Select(w => (w, LatestMistake.Of(w))),
             _ => weak.Concat(mastered)
-                .Select(w => (Word: w, Last: LastMistake(w)))
+                .Select(w => (Word: w, Last: LatestMistake.Of(w)))
                 .OrderBy(x => x.Last is null ? 1 : 0)
                 .ThenByDescending(x => x.Last?.At.UtcTicks)
                 .ThenBy(x => x.Word.WordId, StringComparer.Ordinal),
@@ -83,7 +84,7 @@ public static class WeakWordList
     }
 
     private static WeakWordRow ToRow(
-        WordProgress w, Mistake? last, Dictionary<string, string> spellings, LearningSettings settings, DateTimeOffset now, DateOnly today)
+        WordProgress w, LatestMistake? last, Dictionary<string, string> spellings, LearningSettings settings, DateTimeOffset now, DateOnly today)
     {
         var inSet = spellings.TryGetValue(w.WordId, out var spelling);
         var isWeak = w.State == LearningState.Weak;
@@ -110,21 +111,4 @@ public static class WeakWordList
             isWeak ? null : w.NextReviewDate,
             isWeak ? null : ReviewScheduler.IsDue(w, today));
     }
-
-    /// <summary>最後の誤答: LastWrongAt の時点が最も新しいモード(再練習を含む)。同じ時点ならモードの順(日本語 → 音声 → 穴あき → フラッシュ)。</summary>
-    private static Mistake? LastMistake(WordProgress w)
-    {
-        Mistake? best = null;
-        foreach (var mode in Enum.GetValues<LearningMode>())
-        {
-            if (w.Mode(mode) is { LastWrongAt: { } at } record && (best is null || at.UtcTicks > best.At.UtcTicks))
-            {
-                best = new Mistake(at, record.LastWrongInput);
-            }
-        }
-
-        return best;
-    }
-
-    private sealed record Mistake(DateTimeOffset At, string? Input);
 }

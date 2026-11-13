@@ -159,7 +159,7 @@ public class FlowWeakListTests
 
         flow.StartWeakPractice(Choices.Manual(Japanese, 1));
 
-        Assert.NotEqual(SelectionEmptyReason.None, flow.As<WeakListScreen>().EmptyReason);
+        Assert.Equal(SelectionEmptyReason.NoWeakWords, flow.As<WeakListScreen>().EmptyReason);
         Assert.Equal(before, env.Dir.Snapshot());
     }
 
@@ -171,10 +171,12 @@ public class FlowWeakListTests
         env.Modes = [Flash];
         var flow = env.Start();
         flow.OpenWeakList();
+        var before = env.Dir.Snapshot();
 
         flow.StartWeakPractice(Choices.Auto());
 
-        Assert.NotEqual(SelectionEmptyReason.None, flow.As<WeakListScreen>().EmptyReason);
+        Assert.Equal(SelectionEmptyReason.NoEligibleWords, flow.As<WeakListScreen>().EmptyReason);
+        Assert.Equal(before, env.Dir.Snapshot());
     }
 
     [Fact]
@@ -210,9 +212,35 @@ public class FlowWeakListTests
         Assert.True(list.WeakOnly);
         Assert.Null(env.Progress().Session);
 
+        flow.ChangeWeakList(WeakListSort.WeakFirst, weakOnly: false); // 文言・Diagnostic は消える
+        var changed = flow.As<WeakListScreen>();
+        Assert.Null(changed.Message);
+        Assert.Null(changed.Diagnostic);
+        flow.BackToHome(); // 失敗した開始はメモリにも残っていない(ホームになれる)
+        Assert.Equal(1, flow.As<HomeScreen>().Status.Weak);
+        flow.OpenWeakList();
+
         env.Files.FailWrites = false;
         flow.StartWeakPractice(Choices.Auto());
         Assert.IsType<QuestionScreen>(flow.Screen);
+    }
+
+    [Fact]
+    public void Home_status_is_rebuilt_after_discarding_a_practice_with_new_records()
+    {
+        using var env = new FlowEnv();
+        var flow = env.Start();
+        Assert.Equal(new StudyStatus(5, 0, 0, 0, 0), flow.As<HomeScreen>().Status);
+        flow.StartPractice(Choices.Manual(Japanese, 3));
+        flow.AnswerCurrent(false); // 1語が苦手に
+        flow.Next();
+        flow.AnswerCurrent(true); // 1語が通常に
+        flow.Next();
+
+        flow.Quit();
+        flow.DiscardAndGoHome();
+
+        Assert.Equal(new StudyStatus(Unseen: 3, Normal: 1, Weak: 1, Mastered: 0, ReviewDue: 0), flow.As<HomeScreen>().Status);
     }
 
     [Fact]

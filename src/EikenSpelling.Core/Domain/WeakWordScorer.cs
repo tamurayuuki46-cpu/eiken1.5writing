@@ -18,8 +18,7 @@ public static class WeakWordScorer
         var today = JstClock.ToJstDate(now);
         long score = Math.Min(word.NormalMistakes, s.MistakeCap);
 
-        var lastWrong = word.Modes.Values.Select(m => m.LastWrongAt).Max();
-        if (lastWrong is { } wrongAt && DaysBetween(wrongAt, today) < s.RecentMistakeDays)
+        if (LatestMistake.Of(word) is { } last && DaysBetween(last.At, today) < s.RecentMistakeDays)
         {
             score += s.RecentMistakeBonus;
         }
