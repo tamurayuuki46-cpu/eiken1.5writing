@@ -2,14 +2,10 @@ using System.Collections.Immutable;
 
 namespace EikenSpelling.Core.Models;
 
-/// <summary>学習記録全体。変更不可で、AnswerRecorder.Apply が新しい値を返す。</summary>
+/// <summary>学習記録全体。変更不可で、AnswerRecorder.Apply が新しい値を返す。版は ProgressDocument が持つ。</summary>
 public sealed record LearningProgress
 {
-    public const int CurrentSchemaVersion = 1;
-
     public static readonly LearningProgress Empty = new();
-
-    public int SchemaVersion { get; init; } = CurrentSchemaVersion;
 
     public ImmutableDictionary<string, WordProgress> Words { get; init; } =
         ImmutableDictionary<string, WordProgress>.Empty.WithComparers(StringComparer.Ordinal);

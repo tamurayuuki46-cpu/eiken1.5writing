@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace EikenSpelling.Core.Settings;
 
 /// <summary>
-/// settings.json の文字列との変換。ファイルの読み書き・バックアップは WPF 側の JsonSettingsRepository が行う。
+/// settings.json の文字列との変換。ファイルの読み書き・バックアップは EikenSpelling.Persistence の SettingsRepository が行う。
 /// 欠けた項目は初期値で補い、知らない項目は無視する。
 /// </summary>
 public static class LearningSettingsJson

@@ -84,15 +84,15 @@ public static class AnswerRecorder
         var isRetry = answer.Id.AttemptType == AttemptType.Retry;
         m = (isRetry, answer.IsCorrect) switch
         {
-            (false, true) => m with { NormalCorrect = m.NormalCorrect + 1 },
-            (false, false) => m with { NormalWrong = m.NormalWrong + 1 },
-            (true, true) => m with { RetryCorrect = m.RetryCorrect + 1 },
-            (true, false) => m with { RetryWrong = m.RetryWrong + 1 },
+            (false, true) => m with { NormalCorrect = Increment(m.NormalCorrect) },
+            (false, false) => m with { NormalWrong = Increment(m.NormalWrong) },
+            (true, true) => m with { RetryCorrect = Increment(m.RetryCorrect) },
+            (true, false) => m with { RetryWrong = Increment(m.RetryWrong) },
         };
 
         if (!answer.IsCorrect && IsNewer(answer.AnsweredAt, m.LastWrongAt))
         {
-            m = m with { LastWrongInput = answer.Input, LastWrongAt = answer.AnsweredAt };
+            m = m with { LastWrongInput = InputRules.TruncateForStorage(answer.Input), LastWrongAt = answer.AnsweredAt };
         }
 
         if (IsNewer(answer.AnsweredAt, m.LastAskedAt))
@@ -145,6 +145,9 @@ public static class AnswerRecorder
         var (stage, next) = ReviewScheduler.Advance(word.ReviewStage, date, mastery);
         return word with { ReviewStage = stage, NextReviewDate = next };
     }
+
+    /// <summary>int の上限で止める(マイナスに回り込ませない)。</summary>
+    private static int Increment(int value) => value == int.MaxValue ? value : value + 1;
 
     private static bool IsNewer(DateTimeOffset value, DateTimeOffset? current) => current is null || value > current;
 }
