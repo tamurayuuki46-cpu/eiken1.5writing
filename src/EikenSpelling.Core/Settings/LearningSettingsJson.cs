@@ -19,6 +19,13 @@ public static class LearningSettingsJson
         RespectNullableAnnotations = true,
     };
 
+    /// <summary>リストの要素の null(RespectNullableAnnotations では検出されない)があるか。セッションのスナップショットでも使う。</summary>
+    internal static bool HasNullElements(LearningSettings settings) =>
+        settings.Practice is null || settings.Mastery is null || settings.Vocabulary is null || settings.WeakWordScore is null
+        || settings.Practice.ModeWeights is null || settings.Practice.QuestionCountChoices is null || settings.Practice.FlashSecondsChoices is null
+        || settings.Mastery.ReviewIntervalsDays is null || settings.Mastery.ReviewLimits is null || settings.Vocabulary.EnabledSources is null
+        || settings.Mastery.ReviewLimits.Any(l => l is null) || settings.Vocabulary.EnabledSources.Any(s => s is null);
+
     /// <summary>全体を変換する前に settingsVersion だけを読む。無ければ null(初期値の版として扱う)。</summary>
     public static int? ReadSettingsVersion(string json) => Application.JsonVersionReader.Read(json, "settingsVersion");
 
@@ -46,7 +53,7 @@ public static class LearningSettingsJson
         }
 
         // リストの要素の null は RespectNullableAnnotations では検出されないため個別に確認する
-        if (settings.Mastery.ReviewLimits.Any(l => l is null) || settings.Vocabulary.EnabledSources.Any(s => s is null))
+        if (HasNullElements(settings))
         {
             throw new InvalidDataException("設定ファイルに空(null)の要素があります。");
         }

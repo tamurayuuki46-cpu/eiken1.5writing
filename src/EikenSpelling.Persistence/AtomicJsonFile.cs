@@ -155,6 +155,27 @@ public sealed class AtomicJsonFile<T>
         return Save(content);
     }
 
+    /// <summary>主ファイルの写しを退避名で書く(中身の一部を捨てて読んだときに元を残す)。失敗しても例外は投げない。</summary>
+    public bool PreserveMainCopy()
+    {
+        try
+        {
+            if (!_files.Exists(MainPath))
+            {
+                return false;
+            }
+
+            var text = Retry(() => _files.ReadAllText(MainPath));
+            var target = EvacuationPath(MainPath, ".corrupt-", ".json");
+            Retry(() => _files.WriteAndFlush(target, text));
+            return true;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>
     /// バックアップから復旧する: bak の中身を tmp に書く → 壊れた主を退避名へ移動 → tmp を主へ移動。
     /// 次の保存では正常な主が bak に回る。途中で失敗したら Unavailable(bak は変えないので次の起動で再び復旧できる)。

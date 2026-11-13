@@ -10,7 +10,7 @@ paths:
 - 機能別ではなく層別に分ける。`src/EikenSpelling.Core/` の下:
   - `Models/` 単語データ・出題モードなどのデータ型
   - `Domain/` 正誤判定・差分・検証・日本時間・固定ルール(MasteryRules)
-  - `Application/` 読込・出題枠の計算など、複数の部品を組み合わせる処理
+  - `Application/` 読込・出題枠の計算・セッションなど、複数の部品を組み合わせる処理。Settings を含む型(PracticeSession・ProgressDocument)もここに置く
   - `Settings/` 学習設定(LearningSettings)・初期値・検証・JSON 変換
 - ファイルの保存・読込・復旧は `src/EikenSpelling.Persistence/`(net10.0、Windows 非依存)に置く。画面・音声は `src/EikenSpelling.Wpf/`。
   (仕様 v1.2 4章の図では Wpf/Persistence。テストを Linux でも動かすため分けた。DECISIONS.md「仕様からの差分」)

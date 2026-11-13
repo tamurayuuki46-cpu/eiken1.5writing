@@ -1,8 +1,10 @@
-namespace EikenSpelling.Core.Models;
+using EikenSpelling.Core.Models;
+
+namespace EikenSpelling.Core.Application;
 
 /// <summary>
 /// progress.json の中身。schemaVersion の正本はここだけ(v1.1 4.3)。
-/// セッションの進行状態は次のタスクで任意項目として足す(無ければ未完了なし)。
+/// セッションは任意項目(無ければ未完了なし)。Session を持つため Application に置く(Models → Settings を作らない)。
 /// </summary>
 public sealed record ProgressDocument
 {
@@ -16,4 +18,7 @@ public sealed record ProgressDocument
     public string SourceVersion { get; init; } = "";
 
     public LearningProgress Progress { get; init; } = LearningProgress.Empty;
+
+    /// <summary>未完了のセッション。完了・中止したセッションは保存しない。</summary>
+    public PracticeSession? Session { get; init; }
 }
