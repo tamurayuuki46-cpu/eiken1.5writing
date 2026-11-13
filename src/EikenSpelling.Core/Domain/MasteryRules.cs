@@ -17,4 +17,11 @@ public static class MasteryRules
     public static bool HasMasteryMode(WordEntry word) =>
         (word.JapaneseEligible && CountsForMastery(LearningMode.Japanese))
         || (word.AudioEligible && CountsForMastery(LearningMode.Audio));
+
+    /// <summary>今日(日本時間)すでに克服判定の対象として正答したか(同じ日の正答は連続正答に数えない)。</summary>
+    public static bool CountedToday(WordProgress word, DateOnly today)
+    {
+        ArgumentNullException.ThrowIfNull(word);
+        return word.LastEligibleCorrectDate == today;
+    }
 }
