@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using EikenSpelling.Core.Application;
 using EikenSpelling.Core.Domain;
 using EikenSpelling.Core.Models;
+using EikenSpelling.Core.Settings;
 
 namespace EikenSpelling.Flow;
 
@@ -24,7 +25,11 @@ public abstract record FlowScreen
 
 /// <summary>ホーム。Status は今の学習記録から作った学習状況(単語データを読む前は StudyStatus.Empty)。</summary>
 public sealed record HomeScreen(
-    StudyStatus Status, SelectionEmptyReason EmptyReason = SelectionEmptyReason.None, string? Message = null) : FlowScreen;
+    StudyStatus Status, SelectionEmptyReason EmptyReason = SelectionEmptyReason.None, string? Message = null) : FlowScreen
+{
+    /// <summary>練習設定の初期値(保存済みの基本設定)。WPF の練習設定画面はこれを最初に選んでおく。</summary>
+    public PracticeChoice Defaults { get; init; } = PracticeChoiceApplier.Defaults;
+}
 
 /// <summary>
 /// 苦手一覧(v1.0 11.4)。Rows の LastWrongInput は利用者が打った文字列(表示用)。画面の状態をログに出さないこと。
@@ -35,7 +40,28 @@ public sealed record WeakListScreen(
     WeakListSort Sort,
     bool WeakOnly,
     SelectionEmptyReason EmptyReason = SelectionEmptyReason.None,
-    string? Message = null) : FlowScreen;
+    string? Message = null) : FlowScreen
+{
+    /// <summary>練習設定の初期値(保存済みの基本設定)。一覧から始める練習の苦手のみは常に真になる。</summary>
+    public PracticeChoice Defaults { get; init; } = PracticeChoiceApplier.Defaults;
+}
+
+/// <summary>
+/// 基本設定の画面(v1.2 2章 A)。Values は画面の値(選択肢・ManualModes に無い値のこともある。WPF はその値も表示する)。
+/// CanSave が偽なら保存できない(理由は CannotSaveReason)。Note は保存の前に知らせる注意、Issues は検査で見つかった項目。
+/// </summary>
+public sealed record SettingsScreen(
+    PracticeChoice Values,
+    ImmutableArray<int> QuestionCountChoices,
+    ImmutableArray<double> FlashSecondsChoices,
+    ImmutableArray<LearningMode> ManualModes,
+    bool CanSave,
+    string? CannotSaveReason,
+    string? Note,
+    string? Message = null) : FlowScreen
+{
+    public ImmutableArray<SettingsIssue> Issues { get; init; } = [];
+}
 
 public sealed record ResumeSummary(DateTimeOffset StartedAt, int Answered, int Total);
 

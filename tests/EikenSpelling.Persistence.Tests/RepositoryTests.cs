@@ -503,3 +503,81 @@ public class ProgressRepositorySessionTests
         Assert.Contains(load.Warnings, w => w.Contains("写しを残せません", StringComparison.Ordinal));
     }
 }
+
+public class SettingsRepositoryCanSaveTests
+{
+    private static SettingsRepository Repo(TempDir dir, IFileOperations? files = null) =>
+        new(dir.Path, new FixedTimeProvider(DateTimeOffset.UnixEpoch), files, TimeSpan.Zero);
+
+    [Fact]
+    public void Before_load_cannot_save()
+    {
+        using var dir = new TempDir();
+
+        var repo = Repo(dir);
+
+        Assert.False(repo.CanSave);
+        Assert.Null(repo.Status);
+    }
+
+    public static TheoryData<string, string?, string?, bool> States => new()
+    {
+        { "FirstRun", null, null, true },
+        { "Loaded", """{ "settingsVersion": 1 }""", null, true },
+        { "RecoveredFromBackup", "{ broken", """{ "settingsVersion": 1 }""", true },
+        { "BothCorrupt", "{ broken", null, true },
+        { "NewerVersion", """{ "settingsVersion": 99 }""", null, false },
+    };
+
+    [Theory]
+    [MemberData(nameof(States))]
+    public void Can_save_follows_load_status(string expected, string? main, string? backup, bool canSave)
+    {
+        using var dir = new TempDir();
+        if (main is not null)
+        {
+            dir.Write(SettingsRepository.FileName, main);
+        }
+
+        if (backup is not null)
+        {
+            dir.Write("settings.bak.json", backup);
+        }
+
+        var repo = Repo(dir);
+        var load = repo.Load();
+
+        Assert.Equal(expected, load.Status.ToString());
+        Assert.Equal(load.Status, repo.Status);
+        Assert.Equal(canSave, repo.CanSave);
+        Assert.Equal(canSave ? SettingsSaveStatus.Saved : SettingsSaveStatus.Failed, repo.Save(DefaultSettings.Create()).Status);
+    }
+
+    [Fact]
+    public void Unavailable_cannot_save()
+    {
+        using var dir = new TempDir();
+        dir.Write(SettingsRepository.FileName, "{}");
+        var files = new FaultyFileOperations();
+        files.Faults["ReadAllText"] = (1, int.MaxValue);
+        var repo = Repo(dir, files);
+
+        Assert.Equal(LoadStatus.Unavailable, repo.Load().Status);
+
+        Assert.False(repo.CanSave);
+    }
+
+    [Fact]
+    public void Saving_over_corrupt_file_turns_status_to_loaded()
+    {
+        using var dir = new TempDir();
+        dir.Write(SettingsRepository.FileName, "{ broken");
+        var repo = Repo(dir);
+        repo.Load();
+
+        repo.Save(DefaultSettings.Create());
+
+        Assert.Equal(LoadStatus.Loaded, repo.Status);
+        Assert.True(repo.CanSave);
+    }
+}

@@ -12,13 +12,13 @@ namespace EikenSpelling.Flow;
 /// 画面の手前の進行役(app-flow design)。今の画面(Screen)を持ち、受け付けない操作は InvalidOperationException にする(状態は変えない)。
 /// 回答は保存の前にメモリ上の文書へ反映する(SessionManager.Answer を同じ問題で二度呼ばない)。1スレッドから使う。
 /// </summary>
-public sealed class PracticeFlow
+public sealed partial class PracticeFlow
 {
     private const string StartFailedMessage = "練習を始められませんでした(保存できません)。";
     private const string SaveFailedMessage = "保存できませんでした。もう一度保存してください。直らないときはアプリを終了してください(最後に保存できた問題から再開できます)。";
 
     private readonly FlowOptions _options;
-    private LearningSettings _settings = DefaultSettings.Create();
+    private SettingsEditor _editor = new(null, DefaultSettings.Create());
     private WordSet? _wordSet;
     private ImmutableDictionary<string, WordEntry> _words = ImmutableDictionary<string, WordEntry>.Empty;
     private ProgressRepository? _repository;
@@ -205,7 +205,7 @@ public sealed class PracticeFlow
     private void Load()
     {
         var startup = FlowStartup.Load(_options);
-        _settings = startup.Settings;
+        _editor = new SettingsEditor(startup.SettingsRepository, startup.Settings);
         _wordSet = startup.WordSet;
         _words = startup.WordSet is null
             ? ImmutableDictionary<string, WordEntry>.Empty
@@ -227,7 +227,7 @@ public sealed class PracticeFlow
     /// </summary>
     private (SelectionEmptyReason Empty, SaveResult? Failure) Begin(PracticeChoice choice)
     {
-        var settings = PracticeChoiceApplier.Apply(_settings, choice);
+        var settings = PracticeChoiceApplier.Apply(_editor.Current, choice);
         var now = _options.Time.GetUtcNow();
         var selection = QuestionSelector.Select(_wordSet!, _document.Progress, settings, _options.AvailableModes, now, _options.Random);
         if (selection.Plan.IsEmpty)
@@ -250,10 +250,10 @@ public sealed class PracticeFlow
     }
 
     private HomeScreen Home(SelectionEmptyReason emptyReason = SelectionEmptyReason.None, string? message = null) =>
-        FlowViews.Home(_wordSet, _document.Progress, _options.Time.GetUtcNow(), emptyReason, message);
+        FlowViews.Home(_wordSet, _document.Progress, _options.Time.GetUtcNow(), emptyReason, message) with { Defaults = _editor.Defaults };
 
     private WeakListScreen WeakList(WeakListSort sort, bool weakOnly) =>
-        FlowViews.WeakList(_wordSet!, _document.Progress, _settings, _options.Time.GetUtcNow(), sort, weakOnly);
+        FlowViews.WeakList(_wordSet!, _document.Progress, _editor.Current, _options.Time.GetUtcNow(), sort, weakOnly) with { Defaults = _editor.Defaults };
 
     private ResumePromptScreen ResumePrompt(PracticeSession session)
     {
