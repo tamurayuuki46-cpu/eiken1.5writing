@@ -14,6 +14,7 @@ namespace EikenSpelling.Flow;
 /// </summary>
 public sealed class PracticeFlow
 {
+    private const string StartFailedMessage = "練習を始められませんでした(保存できません)。";
     private const string SaveFailedMessage = "保存できませんでした。もう一度保存してください。直らないときはアプリを終了してください(最後に保存できた問題から再開できます)。";
 
     private readonly FlowOptions _options;
@@ -27,7 +28,7 @@ public sealed class PracticeFlow
     private PracticeFlow(FlowOptions options)
     {
         _options = options;
-        Screen = new HomeScreen();
+        Screen = new HomeScreen(StudyStatus.Empty);
     }
 
     public FlowScreen Screen { get; private set; }
@@ -59,7 +60,7 @@ public sealed class PracticeFlow
         }
 
         _document = WithVersions(new ProgressDocument());
-        Screen = new HomeScreen { Notices = ["新しい記録で始めました。壊れたファイルは残してあります。"] };
+        Screen = Home() with { Notices = ["新しい記録で始めました。壊れたファイルは残してあります。"] };
     }
 
     public void Resume()
@@ -90,33 +91,59 @@ public sealed class PracticeFlow
         }
 
         _document = discarded;
-        Screen = new HomeScreen();
+        Screen = Home();
     }
 
     public void StartPractice(PracticeChoice choice)
     {
         ArgumentNullException.ThrowIfNull(choice);
         Require<HomeScreen>();
-        var settings = PracticeChoiceApplier.Apply(_settings, choice);
-        var now = _options.Time.GetUtcNow();
-        var selection = QuestionSelector.Select(_wordSet!, _document.Progress, settings, _options.AvailableModes, now, _options.Random);
-        if (selection.Plan.IsEmpty)
+        var (empty, failure) = Begin(choice);
+        if (empty != SelectionEmptyReason.None)
         {
-            Screen = new HomeScreen(selection.EmptyReason);
-            return;
+            Screen = Home(empty);
         }
-
-        var session = SessionManager.Start(_options.NewSessionId(), now, selection.Plan, settings);
-        var started = _document with { Session = session };
-        var saved = Save(started);
-        if (!saved.Succeeded)
+        else if (failure is not null)
         {
-            Screen = new HomeScreen(Message: "練習を始められませんでした(保存できません)。") { Diagnostic = saved.Reason };
-            return;
+            Screen = Home(message: StartFailedMessage) with { Diagnostic = failure.Reason };
         }
+    }
 
-        _document = started;
-        Screen = QuestionScreenFor(session);
+    /// <summary>ホームから苦手一覧へ。何も書かない。</summary>
+    public void OpenWeakList()
+    {
+        Require<HomeScreen>();
+        Screen = WeakList(WeakListSort.WeakFirst, weakOnly: false);
+    }
+
+    /// <summary>並べ方・絞り込みを変えて作り直す。前の理由・文言は消える。何も書かない。</summary>
+    public void ChangeWeakList(WeakListSort sort, bool weakOnly)
+    {
+        Require<WeakListScreen>();
+        Screen = WeakList(sort, weakOnly);
+    }
+
+    /// <summary>一覧から苦手のみの練習を始める(choice の苦手のみは常に真)。0語・保存失敗なら一覧のまま理由を出す。</summary>
+    public void StartWeakPractice(PracticeChoice choice)
+    {
+        ArgumentNullException.ThrowIfNull(choice);
+        var list = Require<WeakListScreen>();
+        var (empty, failure) = Begin(choice with { WeakWordsOnly = true });
+        if (empty != SelectionEmptyReason.None)
+        {
+            Screen = list with { EmptyReason = empty, Message = null, Diagnostic = null };
+        }
+        else if (failure is not null)
+        {
+            Screen = list with { EmptyReason = SelectionEmptyReason.None, Message = StartFailedMessage, Diagnostic = failure.Reason };
+        }
+    }
+
+    /// <summary>苦手一覧からホームへ。何も書かない。</summary>
+    public void BackToHome()
+    {
+        Require<WeakListScreen>();
+        Screen = Home();
     }
 
     public void Answer(string input)
@@ -172,7 +199,7 @@ public sealed class PracticeFlow
     public void GoHome()
     {
         Require<ResultScreen>();
-        Screen = new HomeScreen();
+        Screen = Home();
     }
 
     private void Load()
@@ -190,9 +217,43 @@ public sealed class PracticeFlow
         _lastAnswer = null;
         // 最初の画面はここだけで決める: 止まる画面 / 未完了の練習があれば再開の選択 / それ以外はホーム
         FlowScreen first = startup.Stop
-            ?? (startup.Document?.Session is { } session ? ResumePrompt(session) : new HomeScreen());
+            ?? (startup.Document?.Session is { } session ? ResumePrompt(session) : Home());
         Screen = first with { Notices = startup.Notices };
     }
+
+    /// <summary>
+    /// 練習を始める(出題の選択 → 開始 → 保存)。始められたら出題の画面にして (None, null)。
+    /// 0語なら理由、保存に失敗したらその結果を返し、画面と文書は変えない(戻る画面は呼び出し側が決める)。
+    /// </summary>
+    private (SelectionEmptyReason Empty, SaveResult? Failure) Begin(PracticeChoice choice)
+    {
+        var settings = PracticeChoiceApplier.Apply(_settings, choice);
+        var now = _options.Time.GetUtcNow();
+        var selection = QuestionSelector.Select(_wordSet!, _document.Progress, settings, _options.AvailableModes, now, _options.Random);
+        if (selection.Plan.IsEmpty)
+        {
+            return (selection.EmptyReason, null);
+        }
+
+        var session = SessionManager.Start(_options.NewSessionId(), now, selection.Plan, settings);
+        var started = _document with { Session = session };
+        var saved = Save(started);
+        if (!saved.Succeeded)
+        {
+            return (SelectionEmptyReason.None, saved);
+        }
+
+        var question = QuestionScreenFor(session); // 先に作る(例外なら文書も画面も変えない)
+        _document = started;
+        Screen = question;
+        return (SelectionEmptyReason.None, null);
+    }
+
+    private HomeScreen Home(SelectionEmptyReason emptyReason = SelectionEmptyReason.None, string? message = null) =>
+        FlowViews.Home(_wordSet, _document.Progress, _options.Time.GetUtcNow(), emptyReason, message);
+
+    private WeakListScreen WeakList(WeakListSort sort, bool weakOnly) =>
+        FlowViews.WeakList(_wordSet!, _document.Progress, _settings, _options.Time.GetUtcNow(), sort, weakOnly);
 
     private ResumePromptScreen ResumePrompt(PracticeSession session)
     {

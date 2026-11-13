@@ -17,11 +17,16 @@ public class FlowInvalidOperationTests
         Next,
         Quit,
         GoHome,
+        OpenWeakList,
+        ChangeWeakList,
+        StartWeakPractice,
+        BackToHome,
     }
 
     public enum At
     {
         Home,
+        WeakList,
         ResumePrompt,
         ResumePromptCannotResume,
         Question,
@@ -37,7 +42,8 @@ public class FlowInvalidOperationTests
 
     private static readonly Dictionary<At, Op[]> Allowed = new()
     {
-        [At.Home] = [Op.StartPractice],
+        [At.Home] = [Op.StartPractice, Op.OpenWeakList],
+        [At.WeakList] = [Op.ChangeWeakList, Op.StartWeakPractice, Op.BackToHome],
         [At.ResumePrompt] = [Op.Resume, Op.Discard],
         [At.ResumePromptCannotResume] = [Op.Discard],
         [At.Question] = [Op.Answer, Op.Quit],
@@ -121,6 +127,12 @@ public class FlowInvalidOperationTests
             return flow;
         }
 
+        if (at == At.WeakList)
+        {
+            flow.OpenWeakList();
+            return flow;
+        }
+
         flow.StartPractice(Choices.Auto(count: 1));
         switch (at)
         {
@@ -157,6 +169,10 @@ public class FlowInvalidOperationTests
             case Op.Next: flow.Next(); break;
             case Op.Quit: flow.Quit(); break;
             case Op.GoHome: flow.GoHome(); break;
+            case Op.OpenWeakList: flow.OpenWeakList(); break;
+            case Op.ChangeWeakList: flow.ChangeWeakList(Core.Application.WeakListSort.RecentMistake, true); break;
+            case Op.StartWeakPractice: flow.StartWeakPractice(Choices.Auto()); break;
+            case Op.BackToHome: flow.BackToHome(); break;
         }
     }
 }

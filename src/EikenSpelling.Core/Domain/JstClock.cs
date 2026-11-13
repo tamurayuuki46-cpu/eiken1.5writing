@@ -13,4 +13,17 @@ public static class JstClock
     public static DateOnly Today(TimeProvider timeProvider) => ToJstDate(timeProvider.GetUtcNow());
 
     public static DateOnly ToJstDate(DateTimeOffset moment) => DateOnly.FromDateTime(moment.ToOffset(Offset).DateTime);
+
+    /// <summary>日本時間に直す。直せない極端な日時(MaxValue 付近など)は null(表示や日数の計算で例外にしない)。</summary>
+    public static DateTimeOffset? TryToJst(DateTimeOffset moment)
+    {
+        try
+        {
+            return moment.ToOffset(Offset);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+    }
 }

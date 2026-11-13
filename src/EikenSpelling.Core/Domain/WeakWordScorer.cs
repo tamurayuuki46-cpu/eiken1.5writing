@@ -18,8 +18,7 @@ public static class WeakWordScorer
         var today = JstClock.ToJstDate(now);
         long score = Math.Min(word.NormalMistakes, s.MistakeCap);
 
-        var lastWrong = word.Modes.Values.Select(m => m.LastWrongAt).Max();
-        if (lastWrong is { } wrongAt && DaysBetween(wrongAt, today) < s.RecentMistakeDays)
+        if (LatestMistake.Of(word) is { } last && DaysBetween(last.At, today) < s.RecentMistakeDays)
         {
             score += s.RecentMistakeBonus;
         }
@@ -44,7 +43,7 @@ public static class WeakWordScorer
         return weakWords
             .Select(w => (Word: w, Score: Score(w, settings, now)))
             .OrderByDescending(x => x.Score)
-            .ThenBy(x => x.Word.LastEligibleCorrectDate == today ? 1 : 0)
+            .ThenBy(x => MasteryRules.CountedToday(x.Word, today) ? 1 : 0)
             .ThenBy(x => x.Word.LastNormalAskedAt.HasValue ? 1 : 0)
             .ThenBy(x => x.Word.LastNormalAskedAt)
             .ThenBy(x => x.Word.WordId, StringComparer.Ordinal)
@@ -55,21 +54,16 @@ public static class WeakWordScorer
     private static bool IsOneStepFromMastery(WordProgress word, LearningSettings settings, DateOnly today) =>
         word.MasteryStreak >= 1
         && word.MasteryStreak == settings.Mastery.RequiredCorrectDays - 1
-        && word.LastEligibleCorrectDate != today;
+        && !MasteryRules.CountedToday(word, today);
 
     /// <summary>日本時間の日付の差(今日 − その日)。未来・変換できない日時は 0。</summary>
     private static int DaysBetween(DateTimeOffset moment, DateOnly today)
     {
-        DateOnly date;
-        try
-        {
-            date = JstClock.ToJstDate(moment);
-        }
-        catch (ArgumentOutOfRangeException)
+        if (JstClock.TryToJst(moment) is not { } jst)
         {
             return 0;
         }
 
-        return Math.Max(0, today.DayNumber - date.DayNumber);
+        return Math.Max(0, today.DayNumber - DateOnly.FromDateTime(jst.DateTime).DayNumber);
     }
 }
