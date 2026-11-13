@@ -390,6 +390,44 @@ public class SessionAbandonAndPruneTests
     }
 
     [Fact]
+    public void Abandon_mid_normal_keeps_records_and_prunes_ids()
+    {
+        var r = new Runner(S.Start(null, S.Q("a"), S.Q("b")));
+        r.Answer(false);
+
+        var progress = SessionManager.Abandon(r.Session, r.Progress);
+
+        Assert.Empty(progress.AppliedAnswerIds);
+        Assert.Equal(LearningState.Weak, progress.Word("a")!.State);
+        Assert.Null(progress.Word("b"));
+    }
+
+    [Fact]
+    public void Start_after_abandon_records_with_new_session_id()
+    {
+        var r = new Runner(S.Start(null, S.Q("a"), S.Q("b")));
+        r.Answer(false);
+        var progress = SessionManager.Abandon(r.Session, r.Progress);
+        var second = SessionManager.Start(Guid.NewGuid(), Jst.At(Jst.Day0, 11), [S.Q("a"), S.Q("c")], S.Settings());
+
+        var result = SessionManager.Answer(second, progress, "a", Jst.At(Jst.Day0, 11));
+
+        Assert.Equal(1, result.Progress.Word("a")!.Mode(Japanese).NormalCorrect);
+        Assert.False(result.Completed);
+        Assert.All(result.Progress.AppliedAnswerIds, id => Assert.Equal(second.SessionId, id.SessionId));
+    }
+
+    [Fact]
+    public void Answer_result_reports_change_without_second_progress()
+    {
+        var result = SessionManager.Answer(S.Start(null, S.Q("a")), LearningProgress.Empty, "x", Jst.At(Jst.Day0));
+
+        Assert.Null(result.Change.StateBefore);
+        Assert.Equal(LearningState.Weak, result.Change.StateAfter);
+        Assert.False(result.Change.BecameMastered);
+    }
+
+    [Fact]
     public void Prune_keeps_only_given_session()
     {
         var other = Guid.NewGuid();

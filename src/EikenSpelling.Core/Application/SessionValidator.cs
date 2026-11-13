@@ -67,6 +67,20 @@ public static class SessionValidator
             problems.Add("手動モードの問題のモードが設定と違います。");
         }
 
+        if (session.Answers.Any(a => (a.StateBefore is { } b && !Enum.IsDefined(b)) || (a.StateAfter is { } x && !Enum.IsDefined(x))))
+        {
+            problems.Add("回答の状態の値が定義外です。");
+        }
+
+        // このセッションの反映済み answerId は、回答済みの位置とちょうど一致する(ずれると再開後に進めない・記録が飛ぶ)
+        var expectedIds = Enumerable.Range(0, Math.Min(session.Answers.Length, session.Questions.Length))
+            .Select(i => new AnswerId(session.SessionId, i, session.Questions[i].Attempt))
+            .ToHashSet();
+        if (!progress.AppliedAnswerIds.Where(id => id.SessionId == session.SessionId).ToHashSet().SetEquals(expectedIds))
+        {
+            problems.Add("反映済みの回答IDが、回答済みの問題と一致しません。");
+        }
+
         if (session.Answers.Length >= session.Questions.Length)
         {
             problems.Add("回答が問題の数以上あります(完了したセッションは保存しない)。");

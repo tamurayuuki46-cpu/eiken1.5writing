@@ -171,6 +171,40 @@ public class SessionValidatorTests
     }
 
     [Fact]
+    public void Missing_second_retry_in_unfinished_session_is_invalid()
+    {
+        var r = new Runner(S.Start(S.Settings(1), S.Q("a"), S.Q("b")));
+        r.Answer(false);
+        r.Answer(false); // 列: a, b, aR, bR。位置 2(未完了)
+        var s = r.Session with { Questions = r.Session.Questions.RemoveAt(3) };
+
+        var problems = SessionValidator.Validate(s, r.Progress);
+
+        Assert.Contains(problems, m => m.Contains("再練習の列", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Answer_ids_must_match_answered_positions()
+    {
+        var (s, p) = Valid(); // 位置 2: (0, Normal) と (1, Normal) が反映済み
+
+        var missing = p with { AppliedAnswerIds = p.AppliedAnswerIds.Remove(new AnswerId(s.SessionId, 1, AttemptType.Normal)) };
+        var extra = p with { AppliedAnswerIds = p.AppliedAnswerIds.Add(new AnswerId(s.SessionId, 2, AttemptType.Retry)) };
+
+        Assert.Contains(SessionValidator.Validate(s, missing), m => m.Contains("回答ID", StringComparison.Ordinal));
+        Assert.Contains(SessionValidator.Validate(s, extra), m => m.Contains("回答ID", StringComparison.Ordinal));
+        Assert.Empty(SessionValidator.Validate(s, p with { AppliedAnswerIds = p.AppliedAnswerIds.Add(new AnswerId(Guid.NewGuid(), 0, AttemptType.Normal)) })); // 他のセッションの分は対象外
+    }
+
+    [Fact]
+    public void Undefined_answer_state_is_invalid()
+    {
+        var (s, p) = Valid();
+
+        Assert.True(Invalid(s with { Answers = s.Answers.SetItem(0, s.Answers[0] with { StateAfter = (LearningState)9 }) }, p));
+    }
+
+    [Fact]
     public void Missing_retry_after_last_wrong_normal_is_invalid()
     {
         var (s, p) = Valid();

@@ -56,8 +56,10 @@ public sealed class ProgressRepository
         if (discarded)
         {
             // 壊れたセッションを含む元のファイルは、次の保存で上書きされる前に写しを残す
-            _file.PreserveMainCopy();
-            warnings = [.. warnings, "前回の途中の練習を復元できませんでした(内容が正しくないため)。回答済みの記録は残っています。"];
+            var copied = _file.PreserveMainCopy();
+            warnings = [.. warnings, copied
+                ? "前回の途中の練習を復元できませんでした(内容が正しくないため)。回答済みの記録は残っています。"
+                : "前回の途中の練習を復元できませんでした(内容が正しくないため)。元のファイルの写しを残せませんでした(写しを残せません)。回答済みの記録は残っています。"];
         }
 
         return new(load.Status, document, warnings, load.Reason, discarded);
@@ -73,6 +75,12 @@ public sealed class ProgressRepository
                 : "読み込みの結果(新しい版・読めない・両方破損)のため、上書きしません。");
         }
 
+        // 不正なセッションは保存しない(次の読込で黙って捨てられるのを防ぐ)
+        if (document.Session is not null && SessionValidator.Validate(document.Session, document.Progress).Count > 0)
+        {
+            return SaveResult.Failure("途中の練習の内容が正しくないため、保存していません。");
+        }
+
         string json;
         try
         {
@@ -83,7 +91,9 @@ public sealed class ProgressRepository
             return SaveResult.Failure("学習記録を保存用の形に変換できませんでした。");
         }
 
-        return _file.Save(json);
+        var result = _file.Save(json);
+        _discarded.Clear(); // 保存の読み戻しで記録された分は使わない
+        return result;
     }
 
     /// <summary>BothCorrupt の後、利用者が確認したときだけ呼ぶ。壊れたファイルは退避名で残す。</summary>

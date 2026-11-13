@@ -27,7 +27,7 @@ public static class LearningSettingsJson
         || settings.Mastery.ReviewLimits.Any(l => l is null) || settings.Vocabulary.EnabledSources.Any(s => s is null);
 
     /// <summary>全体を変換する前に settingsVersion だけを読む。無ければ null(初期値の版として扱う)。</summary>
-    public static int? ReadSettingsVersion(string json) => Application.JsonVersionReader.Read(json, "settingsVersion");
+    public static int? ReadSettingsVersion(string json) => JsonVersionReader.Read(json, "settingsVersion");
 
     public static string Serialize(LearningSettings settings) => JsonSerializer.Serialize(settings, Options);
 

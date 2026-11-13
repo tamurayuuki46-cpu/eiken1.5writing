@@ -456,5 +456,50 @@ public class ProgressRepositorySessionTests
         Assert.Contains(dir.Names(), n => n.StartsWith("progress.json.corrupt-", StringComparison.Ordinal)); // 写しを残す
         Assert.Equal(json, dir.Read("progress.json")); // 主ファイルは読込では書き換えない
     }
-}
 
+    [Fact]
+    public void Save_with_invalid_session_fails_and_keeps_file()
+    {
+        using var dir = new TempDir();
+        var (session, progress) = Started();
+        var repo = Repo(dir);
+        repo.Load(Settings);
+        Assert.True(repo.Save(new ProgressDocument { Progress = progress, Session = session }).Succeeded);
+        var before = dir.Snapshot();
+        var completed = session with { Answers = session.Answers.Add(new SessionAnswer(true, null, LearningState.Normal)) };
+
+        Assert.False(repo.Save(new ProgressDocument { Progress = progress, Session = completed }).Succeeded);
+        Assert.Equal(before, dir.Snapshot());
+    }
+
+    [Fact]
+    public void Load_keeps_current_session_ids_and_prunes_others()
+    {
+        using var dir = new TempDir();
+        var (session, progress) = Started();
+        var other = new AnswerId(Guid.NewGuid(), 0, AttemptType.Normal);
+        var repo = Repo(dir);
+        repo.Load(Settings);
+        Assert.True(repo.Save(new ProgressDocument { Progress = progress with { AppliedAnswerIds = progress.AppliedAnswerIds.Add(other) }, Session = session }).Succeeded);
+
+        var load = Repo(dir).Load(Settings);
+
+        Assert.Equal([new AnswerId(session.SessionId, 0, AttemptType.Normal)], load.Document!.Progress.AppliedAnswerIds);
+    }
+
+    [Fact]
+    public void Warning_says_when_copy_could_not_be_kept()
+    {
+        using var dir = new TempDir();
+        var (session, progress) = Started();
+        var broken = session with { Answers = session.Answers.Add(new SessionAnswer(true, null, LearningState.Normal)) };
+        dir.Write("progress.json", ProgressJson.Serialize(new ProgressDocument { Progress = progress, Session = broken }));
+        var faulty = new FaultyFileOperations();
+        faulty.Faults["WriteAndFlush"] = (1, int.MaxValue);
+
+        var load = new ProgressRepository(dir.Path, new FixedTimeProvider(Now), faulty, TimeSpan.Zero).Load(Settings);
+
+        Assert.True(load.SessionDiscarded);
+        Assert.Contains(load.Warnings, w => w.Contains("写しを残せません", StringComparison.Ordinal));
+    }
+}

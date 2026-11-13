@@ -6,15 +6,22 @@ using EikenSpelling.Core.Settings;
 
 namespace EikenSpelling.Core.Application;
 
-/// <summary>Answer の結果。SessionToSave は保存用(完了なら null)、Session は結果画面用(完了でもそのまま)。</summary>
+/// <summary>
+/// Answer の結果。保存には Progress と SessionToSave(完了なら null)を使う。Session は結果画面用(完了でもそのまま)。
+/// 学習記録は Progress の1つだけを持つ(取り違えて整理前の記録を保存しないため)。
+/// </summary>
 public sealed record SessionAnswerResult(
     PracticeSession Session,
     PracticeSession? SessionToSave,
     LearningProgress Progress,
     bool IsCorrect,
     string CorrectWord,
-    AnswerResult Recorded,
+    AnswerChange Change,
     bool Completed);
+
+/// <summary>1回の回答で単語の状態がどう変わったか(画面の表示用)。</summary>
+public sealed record AnswerChange(
+    LearningState? StateBefore, LearningState? StateAfter, bool BecameMastered, bool ReturnedToWeak, bool ReviewAdvanced);
 
 /// <summary>
 /// 練習の進行(design.md 4章)。呼び出し側は Answer が返した学習記録とセッションを1回で保存し、
@@ -99,7 +106,9 @@ public static class SessionManager
         };
         var completed = updated.IsCompleted;
         var newProgress = completed ? RemoveSession(recorded.Progress, session.SessionId) : recorded.Progress;
-        return new SessionAnswerResult(updated, completed ? null : updated, newProgress, correct, q.Word, recorded, completed);
+        var change = new AnswerChange(
+            recorded.StateBefore, recorded.StateAfter, recorded.BecameMastered, recorded.ReturnedToWeak, recorded.ReviewAdvanced);
+        return new SessionAnswerResult(updated, completed ? null : updated, newProgress, correct, q.Word, change, completed);
     }
 
     /// <summary>途中でやめる。回答済みの記録は残し、そのセッションの answerId を消した学習記録を返す。</summary>

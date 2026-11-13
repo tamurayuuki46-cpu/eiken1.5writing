@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace EikenSpelling.Core.Application;
+namespace EikenSpelling.Core.Settings;
 
 /// <summary>JSON 全体を変換する前に、最上位の版の番号だけを読む(新しい版は形が変わっている可能性があるため)。</summary>
 internal static class JsonVersionReader

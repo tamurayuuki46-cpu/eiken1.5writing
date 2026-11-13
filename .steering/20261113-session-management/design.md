@@ -44,7 +44,7 @@
 3. `AnswerRecorder.Apply(progress, AnswerEvent(AnswerId(SessionId, 位置, q.Attempt), q.WordId, q.Mode, 正誤, input, answeredAt), session.Settings)`。結果が重複なら InvalidOperationException(セッションと学習記録が食い違っている)
 4. Answers に {正誤, 前後の状態} を足し、再練習を足す(下)
 5. 完了したら、そのセッションの answerId を学習記録から消す(PruneAnswerIds)
-6. 返す値: 新しい学習記録 / 保存用のセッション(完了なら null)/ 結果画面用のセッション(完了でもそのまま)/ 正誤 / 正解の綴り / AnswerRecorder の結果 / 完了したか
+6. 返す値: 新しい学習記録(1つだけ)/ 保存用のセッション(完了なら null)/ 結果画面用のセッション(完了でもそのまま)/ 正誤 / 正解の綴り / 状態の変化(AnswerChange)/ 完了したか
 
 ### 再練習の足し方(Answer と Replay で共通)
 - 最後の通常問題に答えたとき: 通常問題で誤答した単語を通常問題の順に、再練習として1件ずつ足す(RetryCount = 0 なら足さない)
@@ -65,6 +65,8 @@
 - Answers が Questions 以上(完了したセッションは保存しない約束)
 - Replay の結果が保存された Questions と一致しない(正解した単語の再練習・回数超過・通常問題を答える前の再練習・モードの違い をまとめて検出)
 - 再練習の単語が学習記録に無い
+- このセッションの反映済み answerId が、回答済みの位置 {(i, Questions[i].Attempt) | i < 位置} とちょうど一致しない / 回答の状態が定義外
+- 保存の前にも同じ検査を通し、不正なら保存しない(ProgressRepository.Save)
 - `session` の部分は学習記録とは別に変換する(ProgressJson.ParseDetailed)。セッションが JSON として読めない(必須項目の欠け・明示的な null・型違い)ときも、セッションだけ捨てる(学習記録は読む)
 
 ### 読込(ProgressRepository、設定の Load の後)

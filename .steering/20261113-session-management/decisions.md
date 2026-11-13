@@ -8,3 +8,4 @@
 | 2026-11-13 | セッションの不備はセッションだけ捨てて知らせる | 学習記録をセッションの巻き添えにしない(v1.2 8章「学習履歴を破損させない」) | ファイル全体を壊れている扱い | docs/DECISIONS.md(予定) |
 | 2026-11-13 | セッションの型と ProgressDocument は Application に置く | Models → Settings の逆向きの参照を作らない | ルールに例外を足す | architecture.md・DECISIONS.md |
 | 2026-11-13 | ②③ レビュー反映: Start で設定・一覧を検査(重複語・手動モードの不一致を含む)/ 位置・再練習回数は保存しない(SSoT)/ Replay で列の整合を検査 / 重複回答は例外 / Answers に状態の変化 / 完了時は保存用(null)と結果用を分けて返す / 互換性と戻し方を明記 | 3体レビュー(P0 1・P1 多数) | — | design.md |
+| 2026-11-13 | ⑥ レビュー反映: 不正なセッションは保存しない / answerId と回答済みの位置の一致を検査 / 結果の学習記録は1つだけ(AnswerChange)/ JsonVersionReader を Settings へ移す(前タスクで入った Settings → Application の逆向き参照を解消)/ 写しを残せなかったときの警告 | 3体レビュー(P1 重複込み 5件) | — | design.md |
