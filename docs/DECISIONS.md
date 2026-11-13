@@ -18,7 +18,7 @@
   - 項目名は camelCase。列挙値は型名どおりの文字列(`"Japanese"`, `"AfterNormalQuestions"`, `"TierThenFrequency"`)。読込は大文字小文字を区別しない
   - `reviewLimits` は配列 `[{ "upTo": 5, "limit": 1 }, ...]`(v1.2 例のオブジェクト `{"5":1}` 形式は読めない)
 - 読込で InvalidDataException にするもの(settings.json・words.json 共通):壊れた JSON、型違い、桁あふれ、未知の列挙文字列、
-  明示的な `null`(項目にもリストの要素にも)、words.json の必須項目(id・word)の欠け。呼び出し側は InvalidDataException だけを捕まえればよい
+  明示的な `null`(項目にもリストの要素にも。ただし null を許す項目 words.json の `blanks`・`frequencyRank` は null で正しい)、words.json の必須項目(id・word)の欠け。呼び出し側は InvalidDataException だけを捕まえればよい
   - 「無い項目は初期値」と「null は不正」は区別する(null は手書きの誤りとみなす)
 - 設定値として受け付ける範囲(`SettingsLimits`、学習ルールではなく安全のための範囲):
   問題数・その選択肢 1〜100、モードの重み 0〜100、再練習回数 0〜3、フラッシュ表示 0.1〜10秒(選択肢も同じ)、再確認間隔 1〜3650日
