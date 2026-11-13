@@ -67,8 +67,11 @@ public static class QuestionSelector
 
         // 再確認の並びは ReviewScheduler の期限一覧に任せる(予定日の古い順・同じ日は単語ID順)
         var byId = candidates.ToDictionary(c => c.Word.Id, StringComparer.Ordinal);
+        // 見出しと WordId が食い違う記録(読込では弾かれる)が直接渡されても、重複や例外を起こさない
         var review = ReviewScheduler.DueWordIds(progress, today)
-            .Where(id => byId.TryGetValue(id, out var c) && c.Record is { } r && ReviewScheduler.IsDue(r, today))
+            .Where(id => id is not null && byId.TryGetValue(id, out var c) && c.Record is { } r
+                && string.Equals(r.WordId, id, StringComparison.Ordinal) && ReviewScheduler.IsDue(r, today))
+            .Distinct(StringComparer.Ordinal)
             .Select(id => byId[id])
             .ToList();
 

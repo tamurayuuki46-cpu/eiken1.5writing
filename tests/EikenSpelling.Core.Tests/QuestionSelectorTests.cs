@@ -373,6 +373,24 @@ public class QuestionSelectorFilterTests
     }
 
     [Fact]
+    public void Review_record_with_mismatched_id_is_not_duplicated()
+    {
+        // 2つの見出しが同じ WordId を持つ(手で書き換えた記録。読込では弾かれるが、直接渡されても一覧を重複させない)
+        var p = LearningProgress.Empty with
+        {
+            Words = ImmutableDictionary<string, WordProgress>.Empty.WithComparers(StringComparer.Ordinal)
+                .Add("m1", Sel.Mastered("m1", Sel.Today)).Add("m2", Sel.Mastered("m1", Sel.Today)),
+        };
+
+        // 20問なら再確認の上限が2になり、同じ単語が2回入りうる(10問だと上限1で重複が表に出ない)
+        var s = Sel.Settings(count: 20);
+        var r = Sel.Run(Sel.Set([Sel.W("m1"), Sel.W("m2")]), p, s);
+
+        Assert.Equal(r.Plan.Length, r.Ids().Distinct().Count());
+        Assert.NotNull(SessionManager.Start(Guid.NewGuid(), Sel.Now, r.Plan, s));
+    }
+
+    [Fact]
     public void Weak_record_with_mismatched_id_and_null_sources_do_not_throw()
     {
         var p = LearningProgress.Empty with
