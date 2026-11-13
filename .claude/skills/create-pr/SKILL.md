@@ -10,7 +10,7 @@ description: 作業ブランチの変更をセルフレビューしてからプ�
 
 ## 事前確認(1つでも満たさなければ止めて報告)
 - 現在のブランチが main ではない。
-- `{lint}` / `{typecheck}` / `{test}` がすべて通る(出力を見せる)。
+- `dotnet build -warnaserror` と `dotnet test` がすべて通る(出力を見せる)。
 - レビュー役3体(design / edge-case / security)の P0・P1 が残っていない。
 
 ## セルフレビュー(5観点)
@@ -34,9 +34,10 @@ description: 作業ブランチの変更をセルフレビューしてからプ�
 ## 未解決・注意点
 - {blockers / P2 の残り}
 
-関連: .steering/{YYYYMMDD}-{タスク}/
+関連: .steering/[YYYYMMDD]-[タスク]/
 ```
 
 ## 作成
-- `gh pr create --title "{}" --body-file {一時ファイル}` で作る。
+- ローカル CLI では `gh pr create --title "<タイトル>" --body-file <一時ファイル>` で作る。
+- クラウド(claude.ai/code)では gh が使えないので、GitHub の MCP ツール(create_pull_request)でドラフトとして作る。
 - 作ったPRのURLを報告する。マージはしない(人が判断する)。
