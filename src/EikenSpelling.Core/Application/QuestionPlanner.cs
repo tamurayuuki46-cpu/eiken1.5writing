@@ -43,19 +43,20 @@ public static class QuestionPlanner
         var candidates = Enum.GetValues<LearningMode>()
             .Where(m => availableModes.Contains(m) && weights[m] > 0)
             .ToList();
-        var totalWeight = candidates.Sum(m => weights[m]);
+        // 重みが大きくても桁あふれしないよう long で計算する
+        var totalWeight = candidates.Sum(m => (long)weights[m]);
         if (questionCount == 0 || totalWeight == 0)
         {
             return result;
         }
 
         // 整数演算で誤差を避ける: 理論値 = questionCount * weight / totalWeight
-        var remainders = new List<(LearningMode Mode, int Remainder)>();
+        var remainders = new List<(LearningMode Mode, long Remainder)>();
         var assigned = 0;
         foreach (var mode in candidates)
         {
-            var numerator = questionCount * weights[mode];
-            result[mode] = numerator / totalWeight;
+            var numerator = (long)questionCount * weights[mode];
+            result[mode] = (int)(numerator / totalWeight);
             assigned += result[mode];
             remainders.Add((mode, numerator % totalWeight));
         }

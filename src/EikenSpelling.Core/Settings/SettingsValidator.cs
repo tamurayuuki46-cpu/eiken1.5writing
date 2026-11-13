@@ -26,14 +26,14 @@ public static class SettingsValidator
         }
 
         var p = settings.Practice;
-        if (p.QuestionCount <= 0)
+        if (!IsQuestionCount(p.QuestionCount))
         {
-            Add("practice.questionCount", "問題数は1以上にしてください。");
+            Add("practice.questionCount", $"問題数は1〜{SettingsLimits.MaxQuestionCount}にしてください。");
         }
 
-        if (p.QuestionCountChoices.Count == 0 || p.QuestionCountChoices.Any(c => c <= 0))
+        if (p.QuestionCountChoices.Count == 0 || !p.QuestionCountChoices.All(IsQuestionCount))
         {
-            Add("practice.questionCountChoices", "問題数の選択肢は1以上の数を1つ以上指定してください。");
+            Add("practice.questionCountChoices", $"問題数の選択肢は1〜{SettingsLimits.MaxQuestionCount}の数を1つ以上指定してください。");
         }
 
         if (double.IsNaN(p.NewWordRatio) || p.NewWordRatio < 0 || p.NewWordRatio > 1)
@@ -44,35 +44,45 @@ public static class SettingsValidator
         var modes = availableModes ?? Enum.GetValues<LearningMode>().ToHashSet();
         foreach (var mode in Enum.GetValues<LearningMode>())
         {
-            if (p.ModeWeights[mode] < 0)
+            if (p.ModeWeights[mode] < 0 || p.ModeWeights[mode] > SettingsLimits.MaxModeWeight)
             {
-                Add($"practice.modeWeights.{ToCamel(mode)}", "モードの重みは0以上にしてください。");
+                Add($"practice.modeWeights.{ToCamel(mode)}", $"モードの重みは0〜{SettingsLimits.MaxModeWeight}にしてください。");
             }
         }
 
-        if (p.AutoMix && modes.Sum(m => Math.Max(0, p.ModeWeights[m])) <= 0)
+        // 範囲外の重みでも検証自体が桁あふれしないよう long で合計する
+        if (p.AutoMix && modes.Sum(m => (long)Math.Max(0, p.ModeWeights[m])) <= 0)
         {
             Add("practice.modeWeights", "使えるモードの重みの合計が0のため、自動ミックスで出題できません。");
         }
 
-        if (!p.AutoMix && !modes.Contains(p.ManualMode))
+        if (!Enum.IsDefined(p.ManualMode))
+        {
+            Add("practice.manualMode", "選んだモードはこのアプリにありません。");
+        }
+        else if (!p.AutoMix && !modes.Contains(p.ManualMode))
         {
             Add("practice.manualMode", "選んだモードはこの環境では使えません。");
         }
 
-        if (!(p.FlashSeconds > 0))
+        if (!IsFlashSeconds(p.FlashSeconds))
         {
-            Add("practice.flashSeconds", "フラッシュの表示時間は0秒より長くしてください。");
+            Add("practice.flashSeconds", FlashMessage("フラッシュの表示時間"));
         }
 
-        if (p.FlashSecondsChoices.Count == 0 || p.FlashSecondsChoices.Any(s => !(s > 0)))
+        if (p.FlashSecondsChoices.Count == 0 || !p.FlashSecondsChoices.All(IsFlashSeconds))
         {
-            Add("practice.flashSecondsChoices", "フラッシュ表示時間の選択肢は0秒より長い値を1つ以上指定してください。");
+            Add("practice.flashSecondsChoices", FlashMessage("フラッシュ表示時間の選択肢"));
         }
 
-        if (p.RetryCount < 0)
+        if (p.RetryCount < 0 || p.RetryCount > SettingsLimits.MaxRetryCount)
         {
-            Add("practice.retryCount", "再練習回数は0以上にしてください。");
+            Add("practice.retryCount", $"再練習回数は0〜{SettingsLimits.MaxRetryCount}にしてください。");
+        }
+
+        if (!Enum.IsDefined(p.RetryTiming))
+        {
+            Add("practice.retryTiming", "再練習のタイミングの値がこのアプリにありません。");
         }
 
         var m = settings.Mastery;
@@ -81,9 +91,10 @@ public static class SettingsValidator
             Add("mastery.requiredCorrectDays", "克服に必要な正答日数は1以上にしてください。");
         }
 
-        if (m.ReviewIntervalsDays.Count == 0 || m.ReviewIntervalsDays.Any(d => d <= 0))
+        if (m.ReviewIntervalsDays.Count == 0
+            || m.ReviewIntervalsDays.Any(d => d <= 0 || d > SettingsLimits.MaxReviewIntervalDays))
         {
-            Add("mastery.reviewIntervalsDays", "再確認間隔は1日以上の値を1つ以上指定してください。");
+            Add("mastery.reviewIntervalsDays", $"再確認間隔は1〜{SettingsLimits.MaxReviewIntervalDays}日の値を1つ以上指定してください。");
         }
 
         if (m.ReviewLimits.Count == 0)
@@ -125,6 +136,11 @@ public static class SettingsValidator
         }
 
         var v = settings.Vocabulary;
+        if (!Enum.IsDefined(v.Ordering))
+        {
+            Add("vocabulary.ordering", "新規単語の並べ方の値がこのアプリにありません。");
+        }
+
         if (v.EnabledSources.Count == 0)
         {
             Add("vocabulary.enabledSources", "使用する語彙リストを1つ以上選んでください。");
@@ -140,6 +156,15 @@ public static class SettingsValidator
 
         return issues;
     }
+
+    private static bool IsQuestionCount(int count) => count >= 1 && count <= SettingsLimits.MaxQuestionCount;
+
+    // NaN・無限大は比較がすべて false になるので範囲外として扱われる
+    private static bool IsFlashSeconds(double seconds) =>
+        seconds >= SettingsLimits.MinFlashSeconds && seconds <= SettingsLimits.MaxFlashSeconds;
+
+    private static string FlashMessage(string name) =>
+        $"{name}は{SettingsLimits.MinFlashSeconds}〜{SettingsLimits.MaxFlashSeconds}秒にしてください。";
 
     private static string ToCamel(LearningMode mode)
     {

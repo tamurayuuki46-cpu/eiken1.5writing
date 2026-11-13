@@ -14,6 +14,19 @@
 - 初期値は `LearningSettings` の各プロパティ初期値に一本化(= v1.1 の決定値)
 - 設定ファイルに無い項目は初期値で補い、知らない項目は無視する
 - モード比率は辞書ではなく4項目の型(`ModeWeights`)。キーの欠けで重み0になる事故を防ぐため
+- settings.json の形は実装の形を正式とする(2026-11-13。v1.2 6章の例は「実装前に確定」とされていた)
+  - 項目名は camelCase。列挙値は型名どおりの文字列(`"Japanese"`, `"AfterNormalQuestions"`, `"TierThenFrequency"`)。読込は大文字小文字を区別しない
+  - `reviewLimits` は配列 `[{ "upTo": 5, "limit": 1 }, ...]`(v1.2 例のオブジェクト `{"5":1}` 形式は読めない)
+- 読込で InvalidDataException にするもの(settings.json・words.json 共通):壊れた JSON、型違い、桁あふれ、未知の列挙文字列、
+  明示的な `null`(項目にもリストの要素にも)、words.json の必須項目(id・word)の欠け。呼び出し側は InvalidDataException だけを捕まえればよい
+  - 「無い項目は初期値」と「null は不正」は区別する(null は手書きの誤りとみなす)
+- 設定値として受け付ける範囲(`SettingsLimits`、学習ルールではなく安全のための範囲):
+  問題数・その選択肢 1〜100、モードの重み 0〜100、再練習回数 0〜3、フラッシュ表示 0.1〜10秒(選択肢も同じ)、再確認間隔 1〜3650日
+- 定義外の列挙値(JSON の数値 `"manualMode": 99` など)は SettingsValidator が指摘する
+
+## 層の依存
+- Core の中は `Application → Domain / Settings → Models`。苦手度・克服の判定のため **Domain → Settings の参照は認める**(2026-11-13、v1.2 4章)
+- Settings は Domain を参照しない
 
 ## 固定ルール(設定にしない)
 - 正誤判定:大文字・小文字を区別しない、前後の空白を無視、途中の空白は無視しない
