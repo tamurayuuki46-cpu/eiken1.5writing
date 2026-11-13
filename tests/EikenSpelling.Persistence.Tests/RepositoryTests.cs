@@ -518,6 +518,8 @@ public class SettingsRepositoryCanSaveTests
 
         Assert.False(repo.CanSave);
         Assert.Null(repo.Status);
+        Assert.Equal(SettingsSaveStatus.Failed, repo.Save(DefaultSettings.Create()).Status);
+        Assert.Empty(dir.Names());
     }
 
     public static TheoryData<string, string?, string?, bool> States => new()
@@ -563,8 +565,11 @@ public class SettingsRepositoryCanSaveTests
         var repo = Repo(dir, files);
 
         Assert.Equal(LoadStatus.Unavailable, repo.Load().Status);
+        var before = dir.Snapshot();
 
         Assert.False(repo.CanSave);
+        Assert.Equal(SettingsSaveStatus.Failed, repo.Save(DefaultSettings.Create()).Status);
+        Assert.Equal(before, dir.Snapshot());
     }
 
     [Fact]

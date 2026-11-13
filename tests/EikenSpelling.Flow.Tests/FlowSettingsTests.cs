@@ -171,6 +171,26 @@ public class FlowSettingsTests
     }
 
     [Fact]
+    public void Write_failure_keeps_existing_settings_file_unchanged()
+    {
+        using var env = new FlowEnv();
+        var flow = env.Start();
+        flow.OpenSettings();
+        flow.SaveSettings(Initial with { QuestionCount = 5 });
+        flow.OpenSettings();
+        var before = env.Dir.Snapshot();
+        env.Files.FailWrites = true;
+
+        flow.SaveSettings(Initial with { QuestionCount = 20 });
+
+        Assert.IsType<SettingsScreen>(flow.Screen);
+        Assert.Equal(before, env.Dir.Snapshot());
+        env.Files.FailWrites = false;
+        flow.CloseSettings();
+        Assert.Equal(5, flow.As<HomeScreen>().Defaults.QuestionCount);
+    }
+
+    [Fact]
     public void Write_failure_then_close_keeps_current_settings()
     {
         using var env = new FlowEnv();
@@ -210,6 +230,7 @@ public class FlowSettingsTests
         var again = flow.As<SettingsScreen>();
         Assert.NotEmpty(again.Issues);
         Assert.Equal(first.Message, again.Message);
+        Assert.NotEqual(failed.Diagnostic, again.Diagnostic); // 前の失敗の理由は残らない
 
         flow.ResetSettings(); // 文言・Issues・Diagnostic が消える
         var reset = flow.As<SettingsScreen>();
@@ -290,10 +311,13 @@ public class FlowSettingsTests
         env.Dir.Write(SettingsRepository.FileName, "{ broken");
         env.Dir.Write("settings.bak.json", """{ "settingsVersion": 99 }""");
         var flow = env.Start();
+        var before = env.Dir.Snapshot();
 
         flow.OpenSettings();
 
         Assert.False(flow.As<SettingsScreen>().CanSave);
+        Assert.Throws<InvalidOperationException>(() => flow.SaveSettings(Initial));
+        Assert.Equal(before, env.Dir.Snapshot());
     }
 
     [Fact]
@@ -306,6 +330,9 @@ public class FlowSettingsTests
         flow.OpenSettings();
         Assert.False(flow.As<SettingsScreen>().CanSave);
         Assert.Equal(Initial, flow.As<SettingsScreen>().Values); // 読めないので初期値
+        var before = env.Dir.Snapshot();
+        Assert.Throws<InvalidOperationException>(() => flow.SaveSettings(Initial));
+        Assert.Equal(before, env.Dir.Snapshot());
 
         env.Files.FailReadsOf.Clear();
         var restarted = env.Start();
@@ -329,7 +356,11 @@ public class FlowSettingsTests
 
         flow.SaveSettings(screen.Values with { QuestionCount = 20 });
 
-        Assert.Empty(env.Start().As<HomeScreen>().Notices);
+        Assert.Equal(20, flow.As<HomeScreen>().Defaults.QuestionCount);
+        Assert.Equal(20, FileSettings(env).Practice.QuestionCount); // 起動時の復旧で作られた主ではなく、保存した値
+        var restarted = env.Start().As<HomeScreen>();
+        Assert.Empty(restarted.Notices);
+        Assert.Equal(20, restarted.Defaults.QuestionCount);
     }
 
     [Fact]
@@ -448,13 +479,39 @@ public class FlowSettingsTests
     [Fact]
     public void Texts_do_not_contain_the_folder_path()
     {
-        using var env = new FlowEnv();
-        env.Dir.Write(SettingsRepository.FileName, """{ "settingsVersion": 99 }""");
-        var flow = env.Start();
-        flow.OpenSettings();
-        var newer = flow.As<SettingsScreen>();
+        static IEnumerable<string?> Texts(SettingsScreen s) =>
+            [s.CannotSaveReason, s.Note, s.Message, s.Diagnostic, .. s.Issues.Select(i => i.Message), .. s.Issues.Select(i => i.Path)];
 
-        Assert.DoesNotContain(env.Dir.Path, newer.CannotSaveReason!, StringComparison.Ordinal);
+        void Check(FlowEnv env, SettingsScreen s) =>
+            Assert.All(Texts(s).OfType<string>(), t => Assert.DoesNotContain(env.Dir.Path, t, StringComparison.Ordinal));
+
+        using (var newer = new FlowEnv())
+        {
+            newer.Dir.Write(SettingsRepository.FileName, """{ "settingsVersion": 99 }""");
+            var flow = newer.Start();
+            flow.OpenSettings();
+            Check(newer, flow.As<SettingsScreen>());
+        }
+
+        using (var unreadable = new FlowEnv())
+        {
+            unreadable.Dir.Write(SettingsRepository.FileName, "{}");
+            unreadable.Files.FailReadsOf.Add(SettingsRepository.FileName);
+            var flow = unreadable.Start();
+            flow.OpenSettings();
+            Check(unreadable, flow.As<SettingsScreen>());
+        }
+
+        using var corrupt = new FlowEnv();
+        corrupt.Dir.Write(SettingsRepository.FileName, "{ broken");
+        var c = corrupt.Start();
+        c.OpenSettings();
+        Check(corrupt, c.As<SettingsScreen>()); // Note
+        c.SaveSettings(Initial with { QuestionCount = 0 });
+        Check(corrupt, c.As<SettingsScreen>()); // Invalid の Diagnostic・Issues
+        corrupt.Files.FailWrites = true;
+        c.SaveSettings(Initial);
+        Check(corrupt, c.As<SettingsScreen>()); // 退避の上での書き込み失敗の Diagnostic
     }
 
     [Fact]

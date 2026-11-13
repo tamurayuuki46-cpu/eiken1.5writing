@@ -10,7 +10,7 @@ namespace EikenSpelling.Flow;
 /// </summary>
 internal sealed class SettingsEditor(SettingsRepository? repository, LearningSettings current)
 {
-    private const string SavedFailedMessage = "設定を保存できませんでした。もう一度保存するか、保存せずに閉じてください。";
+    private const string SaveFailedMessage = "設定を保存できませんでした。もう一度保存するか、保存せずに閉じてください。";
     private const string InvalidMessage = "設定に正しくない値があります。";
 
     public LearningSettings Current { get; private set; } = current;
@@ -50,7 +50,7 @@ internal sealed class SettingsEditor(SettingsRepository? repository, LearningSet
             case SettingsSaveStatus.Invalid:
                 return screen with { Values = values, Message = InvalidMessage, Issues = [.. result.Issues], Diagnostic = result.Reason };
             default:
-                return screen with { Values = values, Message = SavedFailedMessage, Issues = [], Diagnostic = result.Reason };
+                return screen with { Values = values, Message = SaveFailedMessage, Issues = [], Diagnostic = result.Reason };
         }
     }
 
