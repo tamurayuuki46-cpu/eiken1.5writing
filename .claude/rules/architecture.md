@@ -14,9 +14,10 @@ paths:
   - `Settings/` 学習設定(LearningSettings)・初期値・検証・JSON 変換
 - ファイルの保存・読込・復旧は `src/EikenSpelling.Persistence/`(net10.0、Windows 非依存)に置く。画面・音声は `src/EikenSpelling.Wpf/`。
   (仕様 v1.2 4章の図では Wpf/Persistence。テストを Linux でも動かすため分けた。DECISIONS.md「仕様からの差分」)
+- 起動・練習の進行・保存失敗と破損時の画面の状態は `src/EikenSpelling.Flow/`(net10.0、Windows 非依存)に置く。WPF は Flow の画面の状態を表示し、操作を渡すだけにする。
 
 ## 依存
-- 依存の向き: `Wpf → Persistence → Core`(`Wpf → Core` も可。逆向きは禁止)、Core の中は `Application → Domain / Settings → Models`。逆向きの参照は禁止。
+- 依存の向き: `Wpf → Flow → Persistence → Core`(`Wpf → Core`・`Flow → Core` も可。逆向きは禁止)、Core の中は `Application → Domain / Settings → Models`。逆向きの参照は禁止。
 - Domain → Settings の参照は認める(苦手度・克服の判定が設定値を使うため。v1.2 4章、DECISIONS.md「層の依存」)。Settings → Domain は禁止。
 - Core では次を使わない: `System.Windows.*`、ファイルの読み書き、`DateTime.Now` / `DateTime.Today`、`%APPDATA%` などの環境依存。
   時刻は `TimeProvider`、データは引数で受け取る。

@@ -49,10 +49,12 @@
 
 ## 仕様からの差分
 - 保存処理は v1.2 4章の図(`EikenSpelling.Wpf/Persistence`)ではなく、独立した `EikenSpelling.Persistence`(net10.0)に置く(2026-11-13)。本物のファイルで Linux と Windows の両方でテストするため。仕様書は直していない
+- 起動・練習の進行・保存失敗と破損時の画面の状態は、v1.0 15.4(WPF の責務)ではなく独立した `EikenSpelling.Flow`(net10.0)に置く(2026-11-13)。保存失敗で次へ進まない約束などを Linux と Windows の両方でテストするため。WPF は画面の状態を表示し操作を渡すだけ。仕様書は直していない
 
 ## 層の依存
 - Core の中は `Application → Domain / Settings → Models`。苦手度・克服の判定のため **Domain → Settings の参照は認める**(2026-11-13、v1.2 4章)
 - Settings は Domain を参照しない
+- プロジェクトの依存は `Wpf → Flow → Persistence → Core`(`Flow → Core`・`Wpf → Core` も可)
 
 ## 固定ルール(設定にしない)
 - 正誤判定:大文字・小文字を区別しない、前後の空白を無視、途中の空白は無視しない

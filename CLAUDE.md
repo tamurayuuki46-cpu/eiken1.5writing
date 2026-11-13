@@ -29,9 +29,11 @@ dotnet run --project src/EikenSpelling.Wpf   # 起動(Windows のみ。WPF 作�
 src/EikenSpelling.Core/   # 学習ロジック(Windows 非依存)
   Models/ Domain/ Application/ Settings/   # 層別(.claude/rules/architecture.md)
 src/EikenSpelling.Persistence/  # 保存・読込・復旧(Windows 非依存)
+src/EikenSpelling.Flow/   # 画面の手前の進行役: 起動・練習・保存失敗・破損時の画面の状態(Windows 非依存)
 src/EikenSpelling.Wpf/    # 画面・音声(未作成)
 tests/EikenSpelling.Core.Tests/  # xUnit
 tests/EikenSpelling.Persistence.Tests/  # xUnit(一時フォルダ)
+tests/EikenSpelling.Flow.Tests/  # xUnit(一時フォルダの本物のファイルで通しの流れ)
 docs/spec/                # 仕様書(正本)v1.0〜v1.2
 docs/DECISIONS.md         # コードに入っている決定の早見表
 .steering/_template/      # タスク文書の雛形。タスクごとに .steering/[日付]-[タスク]/ へコピー
