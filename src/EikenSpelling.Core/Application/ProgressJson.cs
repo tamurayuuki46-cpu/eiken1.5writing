@@ -13,37 +13,10 @@ public static class ProgressJson
 
     /// <summary>
     /// 全体を変換する前に schemaVersion だけを読む(新しい版は形が変わっている可能性があるため)。
-    /// JSON として読めない・版が無い・数でないなら InvalidDataException。
+    /// JSON として読めない・版が無い・数でない・食い違って複数あるなら InvalidDataException。
     /// </summary>
-    public static int ReadSchemaVersion(string json)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(json, new JsonDocumentOptions
-            {
-                CommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true,
-            });
-            if (doc.RootElement.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var property in doc.RootElement.EnumerateObject())
-                {
-                    if (string.Equals(property.Name, "schemaVersion", StringComparison.OrdinalIgnoreCase)
-                        && property.Value.ValueKind == JsonValueKind.Number
-                        && property.Value.TryGetInt32(out var version))
-                    {
-                        return version;
-                    }
-                }
-            }
-        }
-        catch (JsonException ex)
-        {
-            throw new InvalidDataException("学習記録を読み込めません。", ex);
-        }
-
-        throw new InvalidDataException("学習記録に schemaVersion がありません。");
-    }
+    public static int ReadSchemaVersion(string json) =>
+        JsonVersionReader.Read(json, "schemaVersion") ?? throw new InvalidDataException("学習記録に schemaVersion がありません。");
 
     /// <summary>
     /// 壊れている・型違い・明示的な null(項目・値・要素)を含む・新しすぎる版なら InvalidDataException だけを投げる。
@@ -76,6 +49,11 @@ public static class ProgressJson
         if (document is null)
         {
             throw new InvalidDataException("学習記録が空です。");
+        }
+
+        if (document.SchemaVersion != version)
+        {
+            throw new InvalidDataException("学習記録の schemaVersion が食い違っています。");
         }
 
         // 辞書の値の null は RespectNullableAnnotations では検出されないため個別に確認する

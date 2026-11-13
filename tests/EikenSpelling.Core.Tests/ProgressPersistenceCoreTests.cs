@@ -108,6 +108,18 @@ public class ProgressJsonTests
     }
 
     [Fact]
+    public void Duplicate_schema_version_keys_that_disagree_are_invalid()
+    {
+        Assert.Throws<InvalidDataException>(() => ProgressJson.Parse("""{ "schemaVersion": 1, "SchemaVersion": 2, "progress": {} }"""));
+    }
+
+    [Fact]
+    public void Schema_version_beyond_int_is_treated_as_newer()
+    {
+        Assert.True(ProgressJson.ReadSchemaVersion("""{ "schemaVersion": 99999999999 }""") > ProgressDocument.CurrentSchemaVersion);
+    }
+
+    [Fact]
     public void Unknown_fields_are_ignored_and_missing_fields_get_defaults()
     {
         var doc = ProgressJson.Parse("""{ "schemaVersion": 1, "session": { "future": true }, "progress": {} }""");
@@ -247,6 +259,37 @@ public class ProgressValidatorTests
     }
 
     [Fact]
+    public void Jst_midnight_decides_today_and_tomorrow()
+    {
+        var d = new DateOnly(2026, 12, 1);
+        var lastSecond = new DateTimeOffset(2026, 11, 30, 14, 59, 59, TimeSpan.Zero); // JST 11/30 23:59:59
+        var midnight = new DateTimeOffset(2026, 11, 30, 15, 0, 0, TimeSpan.Zero);     // JST 12/1 0:00:00
+        var p = With(Weak(1) with { LastEligibleCorrectDate = d });
+
+        Assert.Contains(ProgressValidator.Validate(p, Settings, lastSecond), i => i.Severity == ProgressIssueSeverity.Warning); // まだ 11/30 → 12/1 は明日
+        Assert.Empty(ProgressValidator.Validate(p, Settings, midnight));                                                       // 12/1 になった → 今日
+    }
+
+    [Fact]
+    public void Critical_and_warning_together_contains_critical()
+    {
+        var p = With(Weak(1) with { LastEligibleCorrectDate = new DateOnly(2027, 1, 1), ReviewStage = 1 });
+
+        var issues = Check(p);
+
+        Assert.Contains(issues, i => i.Severity == ProgressIssueSeverity.Critical);
+        Assert.Contains(issues, i => i.Severity == ProgressIssueSeverity.Warning);
+    }
+
+    [Fact]
+    public void Document_overload_checks_the_progress()
+    {
+        var doc = new ProgressDocument { Progress = With(new WordProgress { WordId = "tax" }, key: "fax") };
+
+        Assert.Contains(ProgressValidator.Validate(doc, Settings, Now), i => i.Severity == ProgressIssueSeverity.Critical);
+    }
+
+    [Fact]
     public void Future_timestamp_is_warning()
     {
         var w = new WordProgress { WordId = "tax", LastNormalAskedAt = Now.AddMinutes(1) };
@@ -349,6 +392,20 @@ public class InputRulesAndCountTests
         l.Answer("tax", Japanese, false, Jst.At(Jst.Day0), input: new string('x', 500));
 
         Assert.Equal(InputRules.MaxStoredInputLength, l.Word("tax").Mode(Japanese).LastWrongInput!.Length);
+    }
+
+    [Fact]
+    public void Totals_do_not_overflow_with_huge_counts()
+    {
+        var r = new ModeRecord { NormalCorrect = int.MaxValue, NormalWrong = int.MaxValue };
+        var w = new WordProgress
+        {
+            WordId = "tax",
+            Modes = ImmutableDictionary<LearningMode, ModeRecord>.Empty.Add(Japanese, r).Add(Audio, r),
+        };
+
+        Assert.Equal(0.5, r.Accuracy);
+        Assert.Equal(int.MaxValue, w.NormalMistakes);
     }
 
     [Fact]

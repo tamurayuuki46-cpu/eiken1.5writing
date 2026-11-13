@@ -58,7 +58,17 @@ public sealed class ProgressRepository
                 : "読み込みの結果(新しい版・読めない・両方破損)のため、上書きしません。");
         }
 
-        return _file.Save(ProgressJson.Serialize(document));
+        string json;
+        try
+        {
+            json = ProgressJson.Serialize(document);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return SaveResult.Failure("学習記録を保存用の形に変換できませんでした。");
+        }
+
+        return _file.Save(json);
     }
 
     /// <summary>BothCorrupt の後、利用者が確認したときだけ呼ぶ。壊れたファイルは退避名で残す。</summary>
@@ -109,7 +119,7 @@ public sealed class ProgressRepository
             return FileRead<ProgressDocument>.Corrupt("学習記録を読み取れません。");
         }
 
-        var issues = ProgressValidator.Validate(document.Progress, _settings, _time.GetUtcNow());
+        var issues = ProgressValidator.Validate(document, _settings, _time.GetUtcNow());
         if (issues.Any(i => i.Severity == ProgressIssueSeverity.Critical))
         {
             return FileRead<ProgressDocument>.Corrupt("学習記録の内容が成り立っていません: "

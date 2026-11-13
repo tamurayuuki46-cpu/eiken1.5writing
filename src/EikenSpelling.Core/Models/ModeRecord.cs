@@ -26,5 +26,5 @@ public sealed record ModeRecord
     /// <summary>通常問題の正答率。通常問題で未出題なら null(画面では「未学習」)(v1.0 11.3)。</summary>
     [JsonIgnore]
     public double? Accuracy =>
-        NormalCorrect + NormalWrong == 0 ? null : (double)NormalCorrect / (NormalCorrect + NormalWrong);
+        NormalCorrect + (long)NormalWrong == 0 ? null : NormalCorrect / ((double)NormalCorrect + NormalWrong);
 }

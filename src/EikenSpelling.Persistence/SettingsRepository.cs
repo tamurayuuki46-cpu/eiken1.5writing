@@ -82,6 +82,22 @@ public sealed class SettingsRepository
 
     private static FileRead<LearningSettings> Read(string json)
     {
+        // 新しい版は形が変わっている可能性があるので、全体を変換する前に版だけを読む
+        int? version;
+        try
+        {
+            version = LearningSettingsJson.ReadSettingsVersion(json);
+        }
+        catch (InvalidDataException)
+        {
+            return FileRead<LearningSettings>.Corrupt("設定ファイルを読み取れません。");
+        }
+
+        if (version > LearningSettings.CurrentVersion)
+        {
+            return FileRead<LearningSettings>.Newer($"新しい版のアプリで作られた設定です(settingsVersion {version})。");
+        }
+
         LearningSettings settings;
         try
         {

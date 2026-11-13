@@ -21,6 +21,13 @@ public sealed record ProgressIssue(ProgressIssueSeverity Severity, string? WordI
 /// </summary>
 public static class ProgressValidator
 {
+    /// <summary>progress.json の中身全体の検査(セッションを足したらここで一緒に確かめる)。</summary>
+    public static IReadOnlyList<ProgressIssue> Validate(ProgressDocument document, LearningSettings settings, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return Validate(document.Progress, settings, now);
+    }
+
     public static IReadOnlyList<ProgressIssue> Validate(LearningProgress progress, LearningSettings settings, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(progress);

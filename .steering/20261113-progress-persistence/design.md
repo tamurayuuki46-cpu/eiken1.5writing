@@ -60,17 +60,17 @@
 | Missing・Corrupt | Newer | NewerVersion | なし |
 | Missing・Corrupt | Corrupt | BothCorrupt | なし(tmp も触らない) |
 | Corrupt | Missing | BothCorrupt | なし |
-- **復旧**(P0 対応): ① bak の中身を tmp に書いて flush → ② 壊れた主ファイルがあれば退避名へ**移動** → ③ tmp を主ファイルへ移動。これで次の保存では正常な主ファイルが bak に回る。途中で失敗したら Unavailable を返す(bak は変えないので、次の起動でまた復旧できる)
+- **復旧**(P0 対応): ⓪ 残っている tmp を orphan 名へ(移せなければ Unavailable で中止し、tmp を上書きしない)① bak の中身を tmp に書いて flush → ② 壊れた主ファイルがあれば退避名へ**移動** → ③ tmp を主ファイルへ移動。これで次の保存では正常な主ファイルが bak に回る。途中で失敗したら Unavailable を返す(bak は変えないので、次の起動でまた復旧できる)
 
 ### 保存(AtomicJsonFile.Save)
 1. 内容を tmp に書き、`FileStream.Flush(flushToDisk: true)` でディスクまで書き出す(読み戻しの検証はキャッシュからなので、ディスクに書けた保証ではない)
 2. tmp を読み戻して変換・検査。駄目なら tmp を消して失敗(主・bak は触らない)
 3. 主ファイルがあれば `File.Replace(tmp, 主, bak)`、無ければ `tmp → 主` に移動。入出力の例外は最大3回再試行
-4. 例外はすべて捕まえて `SaveResult` の失敗と理由(パス・内容を含めない)を返す。Windows の Replace は途中で止まると「主が無く tmp が残る」ことがある → 次の読込で bak から復旧し、tmp は orphan 名で残る(最後の1問分が失われる可能性がある。限界として記録)
+4. 例外はすべて(OutOfMemory を除く)捕まえて `SaveResult` の失敗と理由(パス・内容を含めない)を返す。主ファイルが無くなった途中失敗では「次回の起動でバックアップから復旧」と返す。Windows の Replace は途中で止まると「主が無く tmp が残る」ことがある → 次の読込で bak から復旧し、tmp は orphan 名で残る(最後の1問分が失われる可能性がある。限界として記録)
 
 ### 新規開始(StartFresh)
 - BothCorrupt を返した後にだけ受け付ける(それ以外は失敗を返す)
-- 壊れた主・bak を退避名へ移動 → すべて成功したときだけ空の記録を保存(Move の経路)
+- 先に保存する中身を検証 → 残っている tmp を orphan 名へ → 壊れた主・bak を退避名へ移動 → すべて成功したときだけ空の記録を保存(Move の経路)
 
 ### Repository のロック
 - ProgressRepository: Load 前の Save / StartFresh、NewerVersion・Unavailable・BothCorrupt(StartFresh 前)の後の Save は失敗を返す(上書きしない)
@@ -82,7 +82,7 @@
 - 重大と警告が両方あるときは重大(Corrupt)
 
 ### settings.json の読み方
-- 変換失敗 → Corrupt / settingsVersion が新しすぎる → Newer / SettingsValidator(語彙データは渡さない)で問題あり → Corrupt(理由に問題の一覧)/ それ以外 → Ok
+- **settingsVersion を先に読み**、新しすぎる → Newer(形が変わっていても復旧・退避しない。⑥ レビューで順序を修正。確定5に合わせた)/ 変換失敗 → Corrupt / SettingsValidator(語彙データは渡さない)で問題あり → Corrupt(理由に問題の一覧)/ それ以外 → Ok
 - Loaded・RecoveredFromBackup 以外では初期値を返す。初期値で動かすときにファイルは書かない
 - Save: SettingsValidator で問題があれば保存せず問題の一覧を返す(語彙データの確認は練習の開始時)
 

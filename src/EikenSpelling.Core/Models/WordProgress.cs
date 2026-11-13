@@ -35,5 +35,5 @@ public sealed record WordProgress
 
     /// <summary>通常問題の誤答数の累計(苦手登録の回数判定に使う)。</summary>
     [JsonIgnore]
-    public int NormalMistakes => Modes.Values.Sum(m => m.NormalWrong);
+    public int NormalMistakes => (int)Math.Min(int.MaxValue, Modes.Values.Sum(m => (long)m.NormalWrong));
 }

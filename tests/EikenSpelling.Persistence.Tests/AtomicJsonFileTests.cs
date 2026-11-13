@@ -11,7 +11,8 @@ public class AtomicJsonFileTests
     private static readonly DateTimeOffset Now = new(2026, 11, 13, 12, 0, 0, TimeSpan.FromHours(9));
 
     private static FileRead<string> Read(string text) =>
-        text.StartsWith("ok:", StringComparison.Ordinal) ? FileRead<string>.Ok(text, text.Contains("warn") ? ["警告"] : null)
+        text.StartsWith("boom", StringComparison.Ordinal) ? throw new InvalidOperationException("読み方の不具合(テスト)")
+        : text.StartsWith("ok:", StringComparison.Ordinal) ? FileRead<string>.Ok(text, text.Contains("warn") ? ["警告"] : null)
         : text.StartsWith("newer:", StringComparison.Ordinal) ? FileRead<string>.Newer("新しい版")
         : FileRead<string>.Corrupt("壊れている");
 
@@ -137,7 +138,10 @@ public class AtomicJsonFileTests
         f.Save("ok:1");
         var faulty = new FaultyFileOperations { ReplaceStopsHalfway = true };
 
-        Assert.False(File(dir, faulty).Save("ok:2").Succeeded);
+        var failed = File(dir, faulty).Save("ok:2");
+        Assert.False(failed.Succeeded);
+        Assert.DoesNotContain("前回の内容は残っています", failed.Reason);
+        Assert.Equal(1, faulty.Calls("Replace")); // 主が無くなったら再試行しない
         Assert.Null(dir.Read("progress.json")); // 主が無く tmp が残る途中状態
 
         var load = File(dir).Load();
@@ -145,6 +149,19 @@ public class AtomicJsonFileTests
         Assert.Equal(LoadStatus.RecoveredFromBackup, load.Status);
         Assert.Equal("ok:1", load.Value);
         Assert.Contains(dir.Names(), n => n.StartsWith("progress.json.tmp.orphan-", StringComparison.Ordinal)); // 最新の内容は残す
+    }
+
+    [Fact]
+    public void Save_after_halfway_replace_succeeds_via_move()
+    {
+        using var dir = new TempDir();
+        File(dir).Save("ok:1");
+        File(dir, new FaultyFileOperations { ReplaceStopsHalfway = true }).Save("ok:2");
+
+        Assert.True(File(dir).Save("ok:2").Succeeded);
+
+        Assert.Equal("ok:2", dir.Read("progress.json"));
+        Assert.Equal("ok:1", dir.Read("progress.bak.json"));
     }
 
     // ---- 読込 ----
@@ -241,11 +258,100 @@ public class AtomicJsonFileTests
         using var dir = new TempDir();
         dir.Write("progress.json", "ok:1");
         dir.Write("progress.bak.json", "ok:0");
-        var faulty = new FaultyFileOperations { LengthOverride = AtomicJsonFile<string>.MaxFileBytes + 1 };
+        var faulty = new FaultyFileOperations();
+        faulty.LengthOverrides["progress.json"] = AtomicJsonFile<string>.MaxFileBytes + 1;
 
         var load = File(dir, faulty).Load();
 
-        Assert.NotEqual(LoadStatus.Loaded, load.Status);
+        Assert.Equal(LoadStatus.RecoveredFromBackup, load.Status);
+        Assert.Equal("ok:0", load.Value);
+    }
+
+    [Fact]
+    public void Exactly_max_bytes_is_loaded()
+    {
+        using var dir = new TempDir();
+        dir.Write("progress.json", "ok:1");
+        var faulty = new FaultyFileOperations();
+        faulty.LengthOverrides["progress.json"] = AtomicJsonFile<string>.MaxFileBytes;
+
+        Assert.Equal(LoadStatus.Loaded, File(dir, faulty).Load().Status);
+    }
+
+    [Theory]
+    [InlineData(false)] // 主が無い: 最初の読み込みが bak
+    [InlineData(true)]  // 主が壊れている: 2回目の読み込みから bak
+    public void Locked_backup_is_unavailable_and_changes_nothing(bool mainExists)
+    {
+        using var dir = new TempDir();
+        if (mainExists)
+        {
+            dir.Write("progress.json", "broken-main");
+        }
+
+        dir.Write("progress.bak.json", "ok:0");
+        var faulty = new FaultyFileOperations();
+        faulty.Faults["ReadAllText"] = (mainExists ? 2 : 1, int.MaxValue);
+        var before = dir.Snapshot();
+
+        Assert.Equal(LoadStatus.Unavailable, File(dir, faulty).Load().Status);
+        Assert.Equal(before, dir.Snapshot());
+    }
+
+    [Fact]
+    public void Read_back_throwing_is_reported_as_failure()
+    {
+        using var dir = new TempDir();
+        dir.Write("progress.json", "ok:1");
+
+        var r = File(dir).Save("boom");
+
+        Assert.False(r.Succeeded);
+        Assert.Equal("ok:1", dir.Read("progress.json"));
+        Assert.Null(dir.Read("progress.json.tmp"));
+    }
+
+    [Fact]
+    public void Evacuate_keeps_leftover_temp_as_orphan()
+    {
+        using var dir = new TempDir();
+        dir.Write("progress.json", "broken-main");
+        dir.Write("progress.bak.json", "broken-bak");
+        dir.Write("progress.json.tmp", "ok:latest");
+
+        Assert.True(File(dir).EvacuateAndSave("ok:new").Succeeded);
+
+        Assert.Contains("ok:latest", dir.Snapshot().Values);
+        Assert.Equal("ok:new", dir.Read("progress.json"));
+    }
+
+    [Fact]
+    public void Evacuate_validates_content_before_moving_anything()
+    {
+        using var dir = new TempDir();
+        dir.Write("progress.json", "broken-main");
+        dir.Write("progress.bak.json", "broken-bak");
+        var before = dir.Snapshot();
+
+        Assert.False(File(dir).EvacuateAndSave("broken-new").Succeeded);
+
+        Assert.Equal(before, dir.Snapshot());
+    }
+
+    [Fact]
+    public void Recover_does_not_overwrite_temp_when_orphan_move_fails()
+    {
+        using var dir = new TempDir();
+        dir.Write("progress.json", "broken-main");
+        dir.Write("progress.bak.json", "ok:0");
+        dir.Write("progress.json.tmp", "ok:latest");
+        var faulty = new FaultyFileOperations();
+        faulty.Faults["Move"] = (1, 1); // orphan 名への移動だけ失敗
+
+        Assert.Equal(LoadStatus.Unavailable, File(dir, faulty).Load().Status);
+
+        Assert.Equal("ok:latest", dir.Read("progress.json.tmp"));
+        Assert.Equal("ok:0", dir.Read("progress.bak.json"));
     }
 
     [Theory]

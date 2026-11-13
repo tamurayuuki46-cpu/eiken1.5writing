@@ -90,6 +90,31 @@ public class ProgressRepositoryTests
     }
 
     [Fact]
+    public void Critical_and_warning_together_is_recovered_from_backup()
+    {
+        using var dir = new TempDir();
+        var repo = Repo(dir);
+        repo.Load(Settings);
+        repo.Save(Sample());
+        repo.Save(Sample() with { WordSetVersion = "ws-2" }); // bak = ws-1
+        var bad = Sample() with { WordSetVersion = "ws-2" };
+        var w = bad.Progress.Word("tax")!;
+        bad = bad with
+        {
+            Progress = bad.Progress with
+            {
+                Words = bad.Progress.Words.SetItem("tax", w with { LastNormalAskedAt = Now.AddDays(10), ReviewStage = 1 }), // 警告 + 重大
+            },
+        };
+        dir.Write("progress.json", ProgressJson.Serialize(bad));
+
+        var load = Repo(dir).Load(Settings);
+
+        Assert.Equal(LoadStatus.RecoveredFromBackup, load.Status);
+        Assert.Equal("ws-1", load.Document!.WordSetVersion);
+    }
+
+    [Fact]
     public void Warnings_are_reported_with_loaded()
     {
         using var dir = new TempDir();
@@ -299,6 +324,23 @@ public class SettingsRepositoryTests
         Assert.Equal(LearningSettings.CurrentVersion, load.Settings.SettingsVersion);
         Assert.Equal(SettingsSaveStatus.Failed, repo.Save(Custom()).Status);
         Assert.Equal("""{ "settingsVersion": 99 }""", dir.Read("settings.json"));
+    }
+
+    [Fact]
+    public void Newer_settings_with_changed_shape_is_not_recovered()
+    {
+        using var dir = new TempDir();
+        var repo = Repo(dir);
+        repo.Load();
+        repo.Save(Custom());
+        repo.Save(Custom()); // bak も正常
+        dir.Write("settings.json", """{ "settingsVersion": 2, "practice": "new-shape" }""");
+        var before = dir.Snapshot();
+
+        var load = Repo(dir).Load();
+
+        Assert.Equal(LoadStatus.NewerVersion, load.Status);
+        Assert.Equal(before, dir.Snapshot());
     }
 
     [Fact]

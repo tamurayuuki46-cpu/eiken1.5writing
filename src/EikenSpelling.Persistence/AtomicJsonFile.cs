@@ -1,3 +1,5 @@
+using EikenSpelling.Core.Domain;
+
 namespace EikenSpelling.Persistence;
 
 /// <summary>
@@ -84,14 +86,13 @@ public sealed class AtomicJsonFile<T>
         try
         {
             Retry(() => _files.WriteAndFlush(TempPath, content));
-            var check = _read(Retry(() => _files.ReadAllText(TempPath)));
-            if (check.Kind != ReadKind.Ok)
+            if (SafeRead(Retry(() => _files.ReadAllText(TempPath))).Kind != ReadKind.Ok)
             {
                 TryDelete(TempPath);
                 return SaveResult.Failure("保存する内容を読み戻して確かめたところ、正しくありませんでした。");
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             TryDelete(TempPath);
             return SaveResult.Failure("一時ファイルに書き込めませんでした。");
@@ -111,17 +112,32 @@ public sealed class AtomicJsonFile<T>
 
             return SaveResult.Success;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            return SaveResult.Failure("ファイルを置き換えられませんでした。前回の内容は残っています。");
+            return SaveResult.Failure(_files.Exists(MainPath)
+                ? "ファイルを置き換えられませんでした。前回の内容は残っています。"
+                : "置き換えの途中で止まりました。次回の起動でバックアップから復旧します。");
         }
     }
 
     /// <summary>主・バックアップを退避名へ移動し、すべて成功したときだけ content を保存する(新規開始・設定の作り直し)。</summary>
     public SaveResult EvacuateAndSave(string content)
     {
+        // 先に中身を確かめる(退避した後で保存に失敗すると主もバックアップも無くなるため)
+        if (SafeRead(content).Kind != ReadKind.Ok)
+        {
+            return SaveResult.Failure("新しく保存する内容が正しくないため、何も変えていません。");
+        }
+
         try
         {
+            if (_files.Exists(TempPath))
+            {
+                // 最新の記録が残っているかもしれないので消さずに残す
+                var orphan = EvacuationPath(TempPath, ".orphan-", "");
+                Retry(() => _files.Move(TempPath, orphan));
+            }
+
             foreach (var path in new[] { MainPath, BackupPath })
             {
                 if (_files.Exists(path))
@@ -131,7 +147,7 @@ public sealed class AtomicJsonFile<T>
                 }
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             return SaveResult.Failure("壊れたファイルを退避できなかったため、新しく保存していません。");
         }
@@ -146,6 +162,12 @@ public sealed class AtomicJsonFile<T>
     private FileLoad<T> Recover(bool mainIsCorrupt, ReadResult backup)
     {
         KeepOrphanTemp();
+        if (_files.Exists(TempPath))
+        {
+            // 残っていた tmp(最後の1問分の可能性)を上書きしない
+            return Unavailable("前回の一時ファイルを退避できないため、復旧を中止しました。");
+        }
+
         try
         {
             Retry(() => _files.WriteAndFlush(TempPath, backup.Text!));
@@ -157,7 +179,7 @@ public sealed class AtomicJsonFile<T>
 
             Retry(() => _files.Move(TempPath, MainPath));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             return Unavailable("バックアップからの復旧を完了できませんでした。");
         }
@@ -192,16 +214,7 @@ public sealed class AtomicJsonFile<T>
             return new(FileState.Unavailable, null, null);
         }
 
-        FileRead<T> read;
-        try
-        {
-            read = _read(text);
-        }
-        catch (Exception ex) when (ex is InvalidDataException or FormatException or ArgumentException)
-        {
-            read = FileRead<T>.Corrupt("内容を読み取れません。");
-        }
-
+        var read = SafeRead(text);
         var state = read.Kind switch
         {
             ReadKind.Ok => FileState.Ok,
@@ -209,6 +222,19 @@ public sealed class AtomicJsonFile<T>
             _ => FileState.Corrupt,
         };
         return new(state, text, read);
+    }
+
+    /// <summary>読み方(変換と検査)が例外を投げても「壊れている」として扱う。</summary>
+    private FileRead<T> SafeRead(string text)
+    {
+        try
+        {
+            return _read(text);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return FileRead<T>.Corrupt("内容を読み取れません。");
+        }
     }
 
     /// <summary>前回の保存が途中で止まって残った tmp は消さずに orphan 名で残す(失敗しても読込は続ける)。</summary>
@@ -232,7 +258,7 @@ public sealed class AtomicJsonFile<T>
     /// <summary>退避名: 元のファイル名 + 印 + 日時(ミリ秒まで)。同名があれば -1, -2 … を付ける(上書きしない)。</summary>
     private string EvacuationPath(string path, string marker, string extension)
     {
-        var stamp = _time.GetUtcNow().ToOffset(TimeSpan.FromHours(9)).ToString("yyyyMMdd-HHmmss-fff", System.Globalization.CultureInfo.InvariantCulture);
+        var stamp = JstClock.Now(_time).ToString("yyyyMMdd-HHmmss-fff", System.Globalization.CultureInfo.InvariantCulture);
         var baseName = Path.GetFileName(path) + marker + stamp;
         var candidate = Path.Combine(Directory, baseName + extension);
         for (var i = 1; _files.Exists(candidate); i++)

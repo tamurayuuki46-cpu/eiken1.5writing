@@ -31,7 +31,7 @@ internal sealed class TempDir : IDisposable
         {
             Directory.Delete(Path, recursive: true);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // 後始末の失敗でテストを落とさない
         }
@@ -61,8 +61,8 @@ internal sealed class FaultyFileOperations : IFileOperations
     /// <summary>Replace を「主 → bak は済ませ、tmp → 主 で失敗」させる(Windows で起こりうる途中状態)。</summary>
     public bool ReplaceStopsHalfway { get; set; }
 
-    /// <summary>Length が返す値を差し替える(巨大なファイルの確認用)。</summary>
-    public long? LengthOverride { get; set; }
+    /// <summary>Length が返す値を差し替える(巨大なファイルの確認用)。ファイル名(拡張子込み)ごとに指定する。</summary>
+    public Dictionary<string, long> LengthOverrides { get; } = [];
 
     public int Calls(string op) => _calls.GetValueOrDefault(op);
 
@@ -71,7 +71,7 @@ internal sealed class FaultyFileOperations : IFileOperations
     public long Length(string path)
     {
         Hit(nameof(Length));
-        return LengthOverride ?? _inner.Length(path);
+        return LengthOverrides.TryGetValue(Path.GetFileName(path), out var length) ? length : _inner.Length(path);
     }
 
     public string ReadAllText(string path)
@@ -90,6 +90,7 @@ internal sealed class FaultyFileOperations : IFileOperations
     {
         if (ReplaceStopsHalfway)
         {
+            Hit(nameof(Replace));
             // 途中の状態を作るのは1回目だけ。以後は(本物と同じく)何も変えずに失敗する
             if (!_halfwayDone)
             {
