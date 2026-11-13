@@ -3,7 +3,7 @@ using EikenSpelling.Core.Settings;
 namespace EikenSpelling.Flow;
 
 /// <summary>練習の選択を設定に重ねる。検査は QuestionSelector・SessionManager が行う(ここでは重ねるだけ)。</summary>
-public static class PracticeChoiceApplier
+internal static class PracticeChoiceApplier
 {
     public static LearningSettings Apply(LearningSettings settings, PracticeChoice choice)
     {

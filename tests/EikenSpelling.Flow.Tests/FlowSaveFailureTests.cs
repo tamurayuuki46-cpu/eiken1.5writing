@@ -19,12 +19,16 @@ public class FlowSaveFailureTests
 
         Assert.False(feedback.Saved);
         Assert.NotNull(feedback.SaveFailure);
+        Assert.NotNull(feedback.Diagnostic);
+        Assert.DoesNotContain(env.Dir.Path, feedback.Diagnostic, StringComparison.Ordinal);
         Assert.Throws<InvalidOperationException>(flow.Next);
         Assert.Throws<InvalidOperationException>(flow.Quit);
         for (var i = 0; i < extraFailures; i++)
         {
             flow.RetrySave();
-            Assert.False(flow.As<FeedbackScreen>().Saved);
+            var again = flow.As<FeedbackScreen>();
+            Assert.False(again.Saved);
+            Assert.NotNull(again.Diagnostic); // 最後の保存の理由に置き換わる
         }
 
         Assert.Equal(before, env.Dir.Snapshot());
@@ -35,6 +39,7 @@ public class FlowSaveFailureTests
         var saved = flow.As<FeedbackScreen>();
         Assert.True(saved.Saved);
         Assert.Null(saved.SaveFailure);
+        Assert.Null(saved.Diagnostic);
         Assert.Equal(feedback.IsCorrect, saved.IsCorrect);
         Assert.Equal(1, env.RecordedAnswers());
         Assert.Single(env.Progress().Progress.AppliedAnswerIds);
@@ -107,6 +112,11 @@ public class FlowSaveFailureTests
 
         Assert.Equal(0, flow.As<ResumePromptScreen>().Session.Answered);
         Assert.Equal(0, env.RecordedAnswers());
+        flow.Resume();
+        flow.AnswerCurrent(true);
+        flow.Next();
+        Assert.IsType<ResultScreen>(flow.Screen);
+        Assert.Equal(1, env.RecordedAnswers());
     }
 
     [Fact]
@@ -137,7 +147,9 @@ public class FlowSaveFailureTests
 
         flow.StartPractice(Choices.Auto());
 
-        Assert.NotNull(flow.As<HomeScreen>().Message);
+        var home = flow.As<HomeScreen>();
+        Assert.NotNull(home.Message);
+        Assert.NotNull(home.Diagnostic);
         Assert.Null(env.ProgressJsonText);
         env.Files.FailWrites = false;
         flow.StartPractice(Choices.Auto());
@@ -159,6 +171,7 @@ public class FlowSaveFailureTests
 
         var prompt = flow.As<ResumePromptScreen>();
         Assert.NotNull(prompt.Message);
+        Assert.NotNull(prompt.Diagnostic);
         Assert.True(prompt.CanResume);
         Assert.NotNull(env.Progress().Session);
 

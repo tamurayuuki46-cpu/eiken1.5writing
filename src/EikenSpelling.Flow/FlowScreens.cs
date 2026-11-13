@@ -14,6 +14,12 @@ public abstract record FlowScreen
 {
     /// <summary>起動時の通知。起動・再読込の後の最初の画面だけが持つ。</summary>
     public ImmutableArray<string> Notices { get; init; } = [];
+
+    /// <summary>
+    /// ログ用の理由(Persistence の Reason など。固定文でパス・入力を含まない)。画面には出さない。
+    /// 保存・読込に失敗した画面だけが持つ(WPF はこれと SessionId を error でログに出す。logging.md)。
+    /// </summary>
+    public string? Diagnostic { get; init; }
 }
 
 public sealed record HomeScreen(SelectionEmptyReason EmptyReason = SelectionEmptyReason.None, string? Message = null) : FlowScreen;
@@ -29,7 +35,7 @@ public sealed record QuestionView(string WordId, string Word, LearningMode Mode,
 /// <summary>Number は1始まり。Total は再練習が足されると増える。FlashSeconds はセッション開始時の設定の値。</summary>
 public sealed record QuestionScreen(QuestionView Question, int Number, int Total, double FlashSeconds) : FlowScreen;
 
-/// <summary>判定。Saved が偽の間は Next できない(再保存か終了だけ)。SessionId・SaveFailure はログ用。</summary>
+/// <summary>判定。Saved が偽の間は Next できない(再保存か終了だけ)。SaveFailure は画面の文言、原因は Diagnostic。SessionId はログ用。</summary>
 public sealed record FeedbackScreen(
     bool IsCorrect,
     string CorrectWord,

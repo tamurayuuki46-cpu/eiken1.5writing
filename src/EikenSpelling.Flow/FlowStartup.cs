@@ -8,16 +8,20 @@ using EikenSpelling.Persistence;
 
 namespace EikenSpelling.Flow;
 
-/// <summary>起動・再読込の結果。Screen が FatalScreen・BothCorruptScreen のとき Document は null。</summary>
+/// <summary>
+/// 起動・再読込の結果。Stop があれば練習できない(FatalScreen・BothCorruptScreen)。
+/// Stop が無ければ Document を読めている。最初の画面(ホーム / 再開の選択)は PracticeFlow が決める。
+/// </summary>
 internal sealed record StartupResult(
-    FlowScreen Screen,
+    FlowScreen? Stop,
+    ImmutableArray<string> Notices,
     LearningSettings Settings,
     WordSet? WordSet,
     ProgressRepository? Repository,
     ProgressDocument? Document);
 
 /// <summary>
-/// 起動(app-flow design 4.2): 保存先 → 設定 → 単語データ → 学習記録 の順に読み、最初の画面を決める。
+/// 起動(app-flow design 4.2): 保存先 → 設定 → 単語データ → 学習記録 の順に読む。
 /// 何も書かない(書くのは利用者の操作の後だけ)。
 /// </summary>
 internal static class FlowStartup
@@ -25,12 +29,11 @@ internal static class FlowStartup
     public static StartupResult Load(FlowOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var defaults = DefaultSettings.Create();
 
         var directory = options.DataDirectory;
         if (string.IsNullOrEmpty(directory) || !Path.IsPathFullyQualified(directory))
         {
-            return Fatal(FatalKind.FolderInvalid, "保存先のフォルダが正しくありません。", defaults);
+            return Stop(new FatalScreen(FatalKind.FolderInvalid, "保存先のフォルダが正しくありません。"), [], DefaultSettings.Create());
         }
 
         var notices = ImmutableArray.CreateBuilder<string>();
@@ -53,19 +56,24 @@ internal static class FlowStartup
         var wordSet = ReadWordSet(options.WordSetJson);
         if (wordSet is null)
         {
-            return Fatal(FatalKind.WordSetInvalid, "単語データを読み込めません。アプリを入れ直してください。", settings);
+            return Stop(new FatalScreen(FatalKind.WordSetInvalid, "単語データを読み込めません。アプリを入れ直してください。"), [], settings);
         }
 
         var repository = new ProgressRepository(directory, options.Time, options.Files, options.RetryDelay);
         var load = repository.Load(settings);
-        switch (load.Status)
+        FlowScreen? stop = load.Status switch
         {
-            case LoadStatus.BothCorrupt:
-                return new(new BothCorruptScreen { Notices = notices.ToImmutable() }, settings, wordSet, repository, null);
-            case LoadStatus.NewerVersion:
-                return Fatal(FatalKind.NewerVersion, "新しい版のアプリで作られた学習記録です。新しい版のアプリで開いてください。", settings);
-            case LoadStatus.Unavailable:
-                return Fatal(FatalKind.Unavailable, "学習記録のファイルを読めません。ほかのアプリが使っていないか確かめてください。", settings);
+            LoadStatus.BothCorrupt => new BothCorruptScreen(),
+            LoadStatus.NewerVersion => new FatalScreen(
+                FatalKind.NewerVersion, "新しい版のアプリで作られた学習記録です。新しい版のアプリで開いてください。"),
+            LoadStatus.Unavailable => new FatalScreen(
+                FatalKind.Unavailable, "学習記録のファイルを読めません。ほかのアプリが使っていないか確かめてください。"),
+            _ => null,
+        };
+        if (stop is not null)
+        {
+            var kept = stop is BothCorruptScreen ? notices.ToImmutable() : [];
+            return new(stop with { Diagnostic = load.Reason }, kept, settings, wordSet, repository, null);
         }
 
         if (load.Status == LoadStatus.RecoveredFromBackup)
@@ -73,9 +81,9 @@ internal static class FlowStartup
             notices.Add("学習記録が壊れていたため、バックアップから復旧しました。最後の数問の記録が失われた可能性があります。");
         }
 
-        notices.AddRange(load.Warnings);
-        var document = load.Document ?? new ProgressDocument();
-        return new(new HomeScreen { Notices = notices.ToImmutable() }, settings, wordSet, repository, document);
+        // 単語ごとの警告は同じ文言が並びうるのでまとめる
+        notices.AddRange(load.Warnings.Distinct(StringComparer.Ordinal));
+        return new(null, notices.ToImmutable(), settings, wordSet, repository, load.Document ?? new ProgressDocument());
     }
 
     private static WordSet? ReadWordSet(string? json)
@@ -98,6 +106,6 @@ internal static class FlowStartup
         return WordSetValidator.Validate(set).Any(i => i.Severity == ValidationSeverity.Error) ? null : set;
     }
 
-    private static StartupResult Fatal(FatalKind kind, string reason, LearningSettings settings) =>
-        new(new FatalScreen(kind, reason), settings, null, null, null);
+    private static StartupResult Stop(FlowScreen screen, ImmutableArray<string> notices, LearningSettings settings) =>
+        new(screen, notices, settings, null, null, null);
 }

@@ -1,3 +1,4 @@
+using EikenSpelling.Core.Domain;
 using EikenSpelling.Persistence;
 
 using static EikenSpelling.Core.Models.LearningMode;
@@ -231,6 +232,61 @@ public class FlowResumeTests
         env.WordsJson = Words.Json(Words.Five.Where(w => w.Id != answered).ToArray());
 
         Assert.True(env.Start().As<ResumePromptScreen>().CanResume);
+    }
+
+    [Fact]
+    public void Mistaken_word_removed_before_its_retry_is_added_prevents_resume()
+    {
+        using var env = new FlowEnv();
+        var first = env.Start();
+        first.StartPractice(Choices.Auto(count: 5));
+        var mistaken = first.As<QuestionScreen>().Question.WordId;
+        first.AnswerCurrent(false); // 再練習は通常問題を終えてから列に足される(まだ列に無い)
+        env.WordsJson = Words.Json(Words.Five.Where(w => w.Id != mistaken).ToArray());
+
+        var prompt = env.Start().As<ResumePromptScreen>();
+
+        Assert.False(prompt.CanResume);
+    }
+
+    [Fact]
+    public void Retry_mode_not_available_for_mistaken_word_prevents_resume()
+    {
+        using var env = new FlowEnv();
+        var first = env.Start();
+        first.StartPractice(Choices.Auto(count: 5));
+        var mistaken = first.As<QuestionScreen>().Question;
+        first.AnswerCurrent(false);
+        var saved = env.Progress().Session!.Questions[0];
+        var retryMode = RetryModeRule.Choose(saved.Mode, saved.EligibleModes, autoMix: true);
+        Assert.NotEqual(Flash, retryMode); // この単語データでは日本語か音声になる
+        env.WordsJson = Words.Json(Words.Five
+            .Select(w => w.Id != mistaken.WordId ? w : retryMode == Japanese ? w with { Japanese = false } : w with { Audio = false })
+            .ToArray());
+
+        Assert.False(env.Start().As<ResumePromptScreen>().CanResume);
+    }
+
+    [Fact]
+    public void Mistaken_word_still_available_for_retry_allows_resume()
+    {
+        using var env = new FlowEnv();
+        var first = env.Start();
+        first.StartPractice(Choices.Auto(count: 5));
+        first.AnswerCurrent(false);
+
+        Assert.True(env.Start().As<ResumePromptScreen>().CanResume);
+    }
+
+    [Fact]
+    public void Changed_spelling_for_same_id_prevents_resume()
+    {
+        using var env = new FlowEnv();
+        env.Start().StartPractice(Choices.Auto(count: 5));
+        env.WordsJson = Words.Json(Words.Five).Replace("\"word\":\"apple\"", "\"word\":\"appel\"", StringComparison.Ordinal);
+        Assert.Contains("appel", env.WordsJson, StringComparison.Ordinal);
+
+        Assert.False(env.Start().As<ResumePromptScreen>().CanResume);
     }
 
     private static ResultScreen Run(int? interruptAt)

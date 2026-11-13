@@ -23,6 +23,7 @@ public class FlowInvalidOperationTests
     {
         Home,
         ResumePrompt,
+        ResumePromptCannotResume,
         Question,
         FeedbackSaved,
         FeedbackUnsaved,
@@ -30,12 +31,15 @@ public class FlowInvalidOperationTests
         BothCorrupt,
         FatalNewer,
         FatalUnavailable,
+        FatalFolder,
+        FatalWordSet,
     }
 
     private static readonly Dictionary<At, Op[]> Allowed = new()
     {
         [At.Home] = [Op.StartPractice],
         [At.ResumePrompt] = [Op.Resume, Op.Discard],
+        [At.ResumePromptCannotResume] = [Op.Discard],
         [At.Question] = [Op.Answer, Op.Quit],
         [At.FeedbackSaved] = [Op.Next],
         [At.FeedbackUnsaved] = [Op.RetrySave],
@@ -43,6 +47,8 @@ public class FlowInvalidOperationTests
         [At.BothCorrupt] = [Op.StartFresh],
         [At.FatalNewer] = [],
         [At.FatalUnavailable] = [Op.Reload],
+        [At.FatalFolder] = [],
+        [At.FatalWordSet] = [],
     };
 
     public static TheoryData<At, Op> Rejected()
@@ -98,6 +104,14 @@ public class FlowInvalidOperationTests
             case At.FatalUnavailable:
                 env.Dir.Write(ProgressRepository.FileName, FlowEnv.EmptyProgressJson);
                 env.Files.FailReadsOf.Add(ProgressRepository.FileName);
+                return env.Start();
+            case At.FatalFolder:
+                return PracticeFlow.Start(env.Options() with { DataDirectory = "relative" });
+            case At.FatalWordSet:
+                return PracticeFlow.Start(env.Options() with { WordSetJson = "{ broken" });
+            case At.ResumePromptCannotResume:
+                env.Start().StartPractice(Choices.Auto(count: 1));
+                env.WordsJson = Words.Json(new TestWord("zzz"));
                 return env.Start();
         }
 

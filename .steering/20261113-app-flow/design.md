@@ -41,7 +41,7 @@
 ## 4. 処理の流れ
 
 ### 4.1 画面の状態(`FlowScreen`、不変の record。派生型で表す)
-共通の項目: `Notices`(起動時の通知。起動・再読込の後の最初の画面だけが持ち、次の画面に移ると空)。
+共通の項目: `Notices`(起動時の通知。起動・再読込の後の最初の画面だけが持ち、次の画面に移ると空)、`Diagnostic`(ログ用の理由。保存・読込に失敗した画面だけが持つ。Persistence の Reason をそのまま入れる。画面には出さない)。
 
 | 状態 | 中身 | 受け付ける操作 |
 |---|---|---|
@@ -58,7 +58,7 @@
 - Quit()(練習をやめる)→ ResumePromptScreen。何も保存しない(回答ごとに保存済み)。保存に失敗した回答が残っている FeedbackScreen では Quit を受け付けない(RetrySave か終了だけ)。
 - 理由・文言には保存先のパス・誤答入力・例外の内側(InnerException)を入れない。ログ(WPF が出す)に要る理由と sessionId は FeedbackScreen が持つ。画面の状態を丸ごと(ToString で)ログに出さないことを WPF のタスクの design に引き継ぐ。
 
-### 4.2 起動(`FlowStartup.Start(FlowOptions)` → PracticeFlow と最初の画面)
+### 4.2 起動(`PracticeFlow.Start(FlowOptions)`。読込は `FlowStartup.Load`、最初の画面は PracticeFlow だけが決める)
 FlowOptions: 保存先フォルダ、単語データの JSON 文字列、使えるモード、TimeProvider、Random、新しいセッションIDの作り方(`Func<Guid>`)、
 テスト用の `IFileOperations?` と `TimeSpan? RetryDelay`(Persistence の再試行の待ち。テストでは Zero)。
 
@@ -73,9 +73,9 @@ FlowOptions: 保存先フォルダ、単語データの JSON 文字列、使え�
 5. Reload()(Unavailable のときだけ): Repository を作り直して **2.(設定の Load)から** やり直す。通知は作り直す(二重に積まない)。
 
 ### 4.3 再開・終了して新しく始める
-- 再開できるか(`ResumeCheck`): 未完了セッションの**残りの問題**(Position 以降)がすべて、今の単語データにあり、そのモードで表示できる(日本語は訳あり、穴あきは Blanks あり、音声は使えるモードに含まれる)こと。
+- 再開できるか(`ResumeCheck`): これから出る問題がすべて、今の単語データに**同じ綴りで**あり、そのモードで表示できる(日本語は訳あり、穴あきは Blanks あり、音声は使えるモードに含まれる)こと。
+  これから出る問題 = 列の未回答の分 + 通常問題の途中なら、回答済みの通常問題の誤答の再練習(まだ列に無い。モードは RetryModeRule で求める)(⑥で修正)
   - できない → ResumePromptScreen の「再開できるか」を偽にし、理由を出す。利用者は「終了して新しく始める」だけ選べる(【要確認 3】②③の指摘で案を変更: 答えようのない問題を誤答として記録すると苦手登録・連続正答のリセットが起き、学習記録が汚れるため)
-  - 再練習は Position 以降の列に入っている分だけを見る(まだ足されていない再練習は、元の問題が表示できた単語なので確認しない)。再練習のモードは元と違うことがあるので、列に入ったものはそのモードで確認する
 - Resume(): Current を QuestionScreen にする。
 - DiscardAndGoHome(): `SessionManager.Abandon` → Session = null で保存。
   - 成功 → HomeScreen。失敗 → ResumePromptScreen のまま失敗の文言を出す(押し直せる。メモリ上の文書は元のまま、Resume も選べる)(【要確認 2】案で確定)
@@ -107,7 +107,7 @@ FlowOptions: 保存先フォルダ、単語データの JSON 文字列、使え�
 - StartFresh(): `ProgressRepository.StartFresh(wordSetVersion, sourceVersion)`。成功 → 空の文書で HomeScreen(通知「新しい記録で始めました。壊れたファイルは残してあります」)。失敗 → BothCorruptScreen のまま失敗の文言(押し直せる)。
 
 ### 4.7 `SessionSummary.From(PracticeSession)`(Core / Application)
-- NormalCount、NormalCorrect(通常問題の正答数)
+- NormalCount、NormalAnswered(回答済みの通常問題。未完了の集計用)、NormalCorrect(通常問題の正答数)
 - MistakenWords: 通常問題で誤答した単語(出題順、単語ID・綴り)
 - Retries: 単語ごとの再練習の結果(回数・最後に正解したか)。再練習が無い単語は含めない
 - StateChanges: 単語ごとに、セッション内の最初の StateBefore と最後の StateAfter から、次の3種類だけを出す(v1.0 16.1「苦手状態の変化」)
@@ -126,7 +126,8 @@ FlowOptions: 保存先フォルダ、単語データの JSON 文字列、使え�
   - 再開: 通常問題の途中・再練習の1問目・再練習の2問目以降(列の最後に足された分)で作り直し、Current と残りが同じ、最後の SessionSummary が中断なしと一致。日本時間 23:59:59 → 翌 0:00:00 をまたぐ再開
   - 再開できない: 単語データに無い単語・訳の無い日本語モード・Blanks の無い穴あき・使えない音声 → Resume は例外、Discard だけできる
   - 0語の理由ごと(苦手のみで苦手なし・手動モードが使えない・語彙リストで全部外れる・克服対象モードの無い単語だけ)。何も保存しない
-  - 保存失敗: 回答(途中・最後の問題・再練習の最後)/ 失敗0・1・2回の後の成功で answerId と回数が1回分 / 連続失敗で画面とファイルが変わらず理由が更新 / 失敗のまま作り直し → 前の時点から再開(最後の問題なら最後の問題から)/ セッションの検査で弾かれる失敗も同じ画面のまま
+  - 保存失敗: 回答(途中・最後の問題・再練習の最後)/ 失敗0・1・2回の後の成功で answerId と回数が1回分 / 連続失敗で画面とファイルが変わらず理由(Diagnostic)が最後の保存のものになる / 失敗のまま作り直し → 前の時点から再開(最後の問題なら最後の問題から)
+  - セッションの検査で弾かれる保存失敗は、Flow からは起こせない(Flow は SessionManager が作ったセッションだけを保存する)。Persistence のテストで確かめている。Flow 側は同じ失敗の扱い(画面は同じ)
   - 開始の保存失敗 → HomeScreen と文言、メモリは開始前、次の開始は成功 / 破棄の保存失敗 → ResumePrompt に残り Resume も選べる、押し直しで成功(記録は残りセッションだけ消える)/ StartFresh の失敗 → 押し直しで成功、WordSetVersion が今の値。「終了」ではフォルダとバイト列が変わらない
   - Quit → ResumePrompt(何も書かない)→ Resume / Discard → StartPractice
   - 日をまたぐ回答: 苦手語の対象正答が日本時間の日付で数えられ、FeedbackScreen の変化と SessionSummary が合う
@@ -139,7 +140,7 @@ FlowOptions: 保存先フォルダ、単語データの JSON 文字列、使え�
 - 【要確認 1】プロジェクト名 `EikenSpelling.Flow` — 案で確定(レビューで問題なし)
 - 【要確認 2】破棄の保存失敗は再開の選択のまま押し直せる — 案で確定(レビューで問題なし)
 - 【要確認 3】単語データに無い・表示できない問題が残るセッション — ②③の指摘で「綴りだけで出す」から「再開させず、終了して新しく始めるだけ選べる」に変更(4.3)
-- P2: SessionManager.Answer が重複の例外(学習記録とセッションの食い違い)を投げる経路が、読込時の SessionValidator を通った後に残るかは不明。実装中に確かめ、起こるならセッションを捨てて通知する案を報告する
+- SessionManager.Answer の重複の例外: 読込時の SessionValidator が answerId の集合の一致を検査し、合わなければセッションを捨てるため、Flow の通常の操作では起こらない(⑥ edge-case の確認)。起きた場合は例外のまま(状態は変わる前)で、WPF の全体の例外処理で受ける
 - P2: 単語データの大きさの上限は WPF の読込で設ける(同梱ファイル)。読み込んだ記録と単語データの版が違うときの扱い(保存で版が今の値に書き換わる)は後続タスク
 - リスク: Flow は同期で書く。保存が遅い環境で画面が止まる → %APPDATA% 前提で許容。WPF で必要なら Task.Run で包む(1スレッドから呼ぶ前提は守る)
 - リスク: 使えるモード(音声の有無)は起動時に固定。途中で音声が使えなくなった場合は WPF 側で扱う

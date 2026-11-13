@@ -54,7 +54,7 @@ public sealed class PracticeFlow
         var result = _repository!.StartFresh(_wordSet!.WordSetVersion, _wordSet.SourceVersion);
         if (!result.Succeeded)
         {
-            Screen = new BothCorruptScreen("新しい記録を作れませんでした。もう一度試すか、アプリを終了してください。");
+            Screen = new BothCorruptScreen("新しい記録を作れませんでした。もう一度試すか、アプリを終了してください。") { Diagnostic = result.Reason };
             return;
         }
 
@@ -80,7 +80,12 @@ public sealed class PracticeFlow
         var result = Save(discarded);
         if (!result.Succeeded)
         {
-            Screen = prompt with { Message = "前回の練習を終えられませんでした(保存できません)。もう一度試してください。", Notices = [] };
+            Screen = prompt with
+            {
+                Message = "前回の練習を終えられませんでした(保存できません)。もう一度試してください。",
+                Notices = [],
+                Diagnostic = result.Reason,
+            };
             return;
         }
 
@@ -103,9 +108,10 @@ public sealed class PracticeFlow
 
         var session = SessionManager.Start(_options.NewSessionId(), now, selection.Plan, settings);
         var started = _document with { Session = session };
-        if (!Save(started).Succeeded)
+        var saved = Save(started);
+        if (!saved.Succeeded)
         {
-            Screen = new HomeScreen(Message: "練習を始められませんでした(保存できません)。");
+            Screen = new HomeScreen(Message: "練習を始められませんでした(保存できません)。") { Diagnostic = saved.Reason };
             return;
         }
 
@@ -131,14 +137,22 @@ public sealed class PracticeFlow
             result.Completed,
             save.Succeeded,
             save.Succeeded ? null : SaveFailedMessage,
-            result.Session.SessionId);
+            result.Session.SessionId)
+        {
+            Diagnostic = save.Reason,
+        };
     }
 
     public void RetrySave()
     {
         var feedback = Require<FeedbackScreen>(s => !s.Saved);
         var save = Save(_document);
-        Screen = feedback with { Saved = save.Succeeded, SaveFailure = save.Succeeded ? null : SaveFailedMessage };
+        Screen = feedback with
+        {
+            Saved = save.Succeeded,
+            SaveFailure = save.Succeeded ? null : SaveFailedMessage,
+            Diagnostic = save.Reason,
+        };
     }
 
     public void Next()
@@ -174,9 +188,10 @@ public sealed class PracticeFlow
         _repository = startup.Repository;
         _document = startup.Document ?? new ProgressDocument();
         _lastAnswer = null;
-        Screen = startup.Document?.Session is { } session
-            ? ResumePrompt(session) with { Notices = startup.Screen.Notices }
-            : startup.Screen;
+        // 最初の画面はここだけで決める: 止まる画面 / 未完了の練習があれば再開の選択 / それ以外はホーム
+        FlowScreen first = startup.Stop
+            ?? (startup.Document?.Session is { } session ? ResumePrompt(session) : new HomeScreen());
+        Screen = first with { Notices = startup.Notices };
     }
 
     private ResumePromptScreen ResumePrompt(PracticeSession session)

@@ -1,4 +1,5 @@
 using EikenSpelling.Core.Application;
+using EikenSpelling.Core.Models;
 using EikenSpelling.Persistence;
 
 namespace EikenSpelling.Flow.Tests;
@@ -101,6 +102,8 @@ public class FlowStartupTests
         var fatal = flow.As<FatalScreen>();
         Assert.Equal(FatalKind.Unavailable, fatal.Kind);
         Assert.True(fatal.CanReload);
+        Assert.NotNull(fatal.Diagnostic);
+        Assert.DoesNotContain(env.Dir.Path, fatal.Diagnostic, StringComparison.Ordinal);
 
         flow.Reload(); // まだ読めない
         Assert.Equal(FatalKind.Unavailable, flow.As<FatalScreen>().Kind);
@@ -110,6 +113,47 @@ public class FlowStartupTests
         flow.Reload();
 
         Assert.IsType<ResumePromptScreen>(flow.Screen);
+    }
+
+    [Fact]
+    public void Reload_that_finds_both_files_corrupt_offers_start_fresh()
+    {
+        using var env = new FlowEnv();
+        env.Dir.Write(ProgressRepository.FileName, FlowEnv.EmptyProgressJson);
+        env.Files.FailReadsOf.Add(ProgressRepository.FileName);
+        var flow = env.Start();
+        env.Dir.Write(ProgressRepository.FileName, "{ broken");
+        env.Dir.Write("progress.bak.json", "{ broken");
+        env.Files.FailReadsOf.Clear();
+        var before = env.Dir.Snapshot();
+
+        flow.Reload();
+
+        Assert.IsType<BothCorruptScreen>(flow.Screen);
+        Assert.Equal(before, env.Dir.Snapshot());
+        flow.StartFresh();
+        Assert.IsType<HomeScreen>(flow.Screen);
+        flow.StartPractice(Choices.Auto());
+        Assert.IsType<QuestionScreen>(flow.Screen);
+    }
+
+    [Fact]
+    public void Reload_that_finds_newer_version_is_fatal_and_writes_nothing()
+    {
+        using var env = new FlowEnv();
+        env.Dir.Write(ProgressRepository.FileName, FlowEnv.EmptyProgressJson);
+        env.Files.FailReadsOf.Add(ProgressRepository.FileName);
+        var flow = env.Start();
+        env.Dir.Write(ProgressRepository.FileName, """{ "schemaVersion": 99 }""");
+        env.Files.FailReadsOf.Clear();
+        var before = env.Dir.Snapshot();
+
+        flow.Reload();
+
+        var fatal = flow.As<FatalScreen>();
+        Assert.Equal(FatalKind.NewerVersion, fatal.Kind);
+        Assert.False(fatal.CanReload);
+        Assert.Equal(before, env.Dir.Snapshot());
     }
 
     [Fact]
@@ -231,6 +275,79 @@ public class FlowStartupTests
         flow.StartPractice(Choices.Auto(count: 3));
         Assert.Equal(3, env.Progress().Session!.Questions.Length);
         Assert.Equal(settingsJson, env.Dir.Read(SettingsRepository.FileName));
+    }
+
+    [Fact]
+    public void Settings_recovered_from_backup_notify()
+    {
+        using var env = new FlowEnv();
+        env.Dir.Write(SettingsRepository.FileName, "{ broken");
+        env.Dir.Write("settings.bak.json", """{ "settingsVersion": 1 }""");
+
+        var flow = env.Start();
+
+        Assert.Single(flow.As<HomeScreen>().Notices);
+    }
+
+    [Fact]
+    public void Discarded_broken_session_is_notified_and_records_are_kept()
+    {
+        using var env = new FlowEnv();
+        var first = env.Start();
+        first.StartPractice(Choices.Auto());
+        first.AnswerCurrent(false);
+        var doc = env.Progress();
+        // セッションと学習記録の answerId を食い違わせる(読込の検査でセッションだけ捨てられる)
+        env.Dir.Write(ProgressRepository.FileName, ProgressJson.Serialize(doc with
+        {
+            Progress = doc.Progress with { AppliedAnswerIds = [] },
+        }));
+
+        var flow = env.Start();
+
+        var home = flow.As<HomeScreen>();
+        Assert.NotEmpty(home.Notices);
+        Assert.Equal(1, env.RecordedAnswers());
+    }
+
+    [Fact]
+    public void Old_answer_ids_without_session_are_removed_by_the_next_save()
+    {
+        using var env = new FlowEnv();
+        var old = new AnswerId(Guid.Parse("99999999-9999-9999-9999-999999999999"), 0, AttemptType.Normal);
+        env.Dir.Write(ProgressRepository.FileName, ProgressJson.Serialize(new ProgressDocument
+        {
+            Progress = LearningProgress.Empty with { AppliedAnswerIds = [old] },
+        }));
+
+        var flow = env.Start();
+        flow.StartPractice(Choices.Auto());
+        flow.AnswerCurrent(true);
+
+        Assert.DoesNotContain(old, env.Progress().Progress.AppliedAnswerIds);
+    }
+
+    [Fact]
+    public void Old_answer_ids_beside_unfinished_session_do_not_block_resumed_answers()
+    {
+        using var env = new FlowEnv();
+        var first = env.Start();
+        first.StartPractice(Choices.Auto());
+        first.AnswerCurrent(true);
+        var doc = env.Progress();
+        var old = new AnswerId(Guid.Parse("99999999-9999-9999-9999-999999999999"), 1, AttemptType.Normal);
+        env.Dir.Write(ProgressRepository.FileName, ProgressJson.Serialize(doc with
+        {
+            Progress = doc.Progress with { AppliedAnswerIds = doc.Progress.AppliedAnswerIds.Add(old) },
+        }));
+
+        var flow = env.Start();
+        flow.Resume();
+        flow.AnswerCurrent(true);
+
+        var ids = env.Progress().Progress.AppliedAnswerIds;
+        Assert.DoesNotContain(old, ids);
+        Assert.Equal(2, ids.Count);
     }
 
     [Fact]
