@@ -4,9 +4,9 @@
      /clear の後はこのファイルを読ませて再開する -->
 
 ## 状態
-- フェーズ: 実装(tdd)
+- フェーズ: 検証(⑥ 3体レビュー待ち)
 - 最終更新: 2026-11-13
-- 次にやること: T1〜T5 を tdd で実装
+- 次にやること: ⑥ 実装の3体レビュー
 
 ## タスク
 ### 準備
@@ -16,21 +16,22 @@
 - [x] ③ テスト計画のレビュー(edge-case-reviewer)— P0 2 / P1 11 を反映
 
 ### 実装(tdd スキル)
-- [ ] T1: Models(LearningState / AnswerEvent / ModeRecord / WordProgress / LearningProgress)
-- [ ] T2: ReviewScheduler(初回予定日・次の段階・期限一覧)
-- [ ] T3: MasteryEvaluator(連続正答・同じ日・克服対象モード)
-- [ ] T4: AnswerRecorder(重複 → モード別記録 → 再練習の打ち切り → 状態の更新)
-- [ ] T5: モード別の正答率(未学習は null)
+- [x] T1: Models(LearningState / AnswerEvent / ModeRecord / WordProgress / LearningProgress)
+- [x] T2: ReviewScheduler(初回予定日・次の段階・期限一覧)
+- [x] T3: MasteryEvaluator(連続正答・同じ日・克服対象モード)
+- [x] T4: AnswerRecorder(重複 → モード別記録 → 再練習の打ち切り → 状態の更新)
+- [x] T5: モード別の正答率(未学習は null)
 
 ### 検証
-- [ ] `dotnet build -warnaserror` と `dotnet test` が全件通る
-- [ ] 受入条件(requirements.md 5.)を1つずつ確認
+- [x] `dotnet build -warnaserror` と `dotnet test` が全件通る(220/220、Red 57件を確認してから実装)
+- [x] 受入条件(requirements.md 5.)を1つずつ確認(すべて対応するテストあり)
 - [ ] ⑥ 3体レビュー(P0・P1 が残っていない)
 
 ### 片付け
 - [ ] P2(②③): 日時のオフセット統一 / 誤答入力の長さの上限 / 同じ answerId で中身が違う回答 / DateTimeOffset の範囲 / 部品名と v1.2 の対応 / 性能の計測方法
-- [ ] decisions.md の決定を docs/DECISIONS.md へ(苦手度の保留を含む)
+- [x] decisions.md の決定を docs/DECISIONS.md へ(苦手度の保留を含む)
 - [ ] 学びを CLAUDE.md の「学びメモ」に1行追記
 
 ## メモ
 - 2026-11-13: ① の質問で4点を決めた(苦手度は保留 / 再練習は判定に影響しない / 再確認はモードを問わない / 範囲は Core だけ)
+- 2026-11-13: 5,000語の記録への1回の反映は約10ms(初回の JIT 込み)。閾値は置かない
