@@ -58,4 +58,4 @@
 - 関連する永続文書: docs/spec/v1.0(6〜8・11・12.3章)、v1.1(9〜11章)、v1.2(4章)、docs/DECISIONS.md
 - 前提・制約:
   - 克服対象モードは日本語・音声で固定(`MasteryRules`)
-  - 苦手度の計算は保留。DECISIONS.md の「苦手度」の節と `WeakWordScoreSettings` は採用済みのように書かれているので、【要確認】として扱いを決める(design.md 6章)
+  - 苦手度の計算は保留。DECISIONS.md に「保留」と書き足し、`WeakWordScoreSettings` は残す(design.md 6章 5)
