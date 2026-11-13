@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 
 namespace EikenSpelling.Core.Models;
 
@@ -33,5 +34,6 @@ public sealed record WordProgress
     public ModeRecord Mode(LearningMode mode) => Modes.GetValueOrDefault(mode) ?? ModeRecord.Empty;
 
     /// <summary>通常問題の誤答数の累計(苦手登録の回数判定に使う)。</summary>
-    public int NormalMistakes => Modes.Values.Sum(m => m.NormalWrong);
+    [JsonIgnore]
+    public int NormalMistakes => (int)Math.Min(int.MaxValue, Modes.Values.Sum(m => (long)m.NormalWrong));
 }

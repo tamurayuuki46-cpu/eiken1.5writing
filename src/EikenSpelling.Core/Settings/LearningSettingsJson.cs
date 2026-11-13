@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace EikenSpelling.Core.Settings;
 
 /// <summary>
-/// settings.json の文字列との変換。ファイルの読み書き・バックアップは WPF 側の JsonSettingsRepository が行う。
+/// settings.json の文字列との変換。ファイルの読み書き・バックアップは EikenSpelling.Persistence の SettingsRepository が行う。
 /// 欠けた項目は初期値で補い、知らない項目は無視する。
 /// </summary>
 public static class LearningSettingsJson
@@ -18,6 +18,9 @@ public static class LearningSettingsJson
         // 明示的な null は「欠けた項目」と区別して読込エラーにする(null のまま下流へ流さない)
         RespectNullableAnnotations = true,
     };
+
+    /// <summary>全体を変換する前に settingsVersion だけを読む。無ければ null(初期値の版として扱う)。</summary>
+    public static int? ReadSettingsVersion(string json) => Application.JsonVersionReader.Read(json, "settingsVersion");
 
     public static string Serialize(LearningSettings settings) => JsonSerializer.Serialize(settings, Options);
 
