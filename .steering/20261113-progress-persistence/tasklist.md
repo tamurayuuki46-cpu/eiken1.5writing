@@ -1,19 +1,19 @@
 # tasklist.md — 保存・復旧(progress.json / settings.json)
 
 ## 状態
-- フェーズ: 設計(②③ レビュー中)
+- フェーズ: 実装(tdd)
 - 最終更新: 2026-11-13
-- 次にやること: ②③ の結果を報告し、P0・P1 を設計に反映
+- 次にやること: T1〜T6 を tdd で実装
 
 ## タスク
 ### 準備
 - [x] requirements.md を確認してもらう
 - [x] design.md を確認してもらう(【要確認】1〜5 は案どおり確定)
-- [ ] ② プランのレビュー(design-reviewer・security-reviewer)
-- [ ] ③ テスト計画のレビュー(edge-case-reviewer)
+- [x] ② プランのレビュー(design-reviewer・security-reviewer)— P0 3 / P1 13(重複あり)を反映
+- [x] ③ テスト計画のレビュー(edge-case-reviewer)— P0 2 / P1 7 を反映
 
 ### 実装(tdd スキル)
-- [ ] T1: Core — ProgressDocument / ProgressJson / [JsonIgnore] / 誤答入力の切り詰め
+- [ ] T1: Core — ProgressDocument / ProgressJson / [JsonIgnore] / SchemaVersion の一本化 / InputRules(切り詰め)/ 回数の上限
 - [ ] T2: Core — ProgressValidator(重大・警告)
 - [ ] T3: Persistence プロジェクトとテストプロジェクトの追加(sln)
 - [ ] T4: IFileOperations / AtomicJsonFile(保存・読込・復旧)
@@ -26,6 +26,7 @@
 - [ ] ⑥ 3体レビュー(P0・P1 が残っていない)
 
 ### 片付け
+- [ ] P2(②③): 1問ごとの全体書き直しとファイルサイズ / 退避ファイルの数 / 知らない項目は保存し直すと消える(セッション追加時に確認)/ 退避ファイルが多くても読込に影響しないことの確認 / 単語データの版違いの扱いの詳細 / 結果の理由の文言を画面に出す前提の整理
 - [ ] decisions.md の決定を docs/DECISIONS.md へ。architecture.md・database.md・README を更新
 - [ ] 学びを CLAUDE.md の「学びメモ」に1行追記
 
