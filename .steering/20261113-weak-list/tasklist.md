@@ -3,12 +3,12 @@
 ## 状態
 - フェーズ: 設計(① プラン)
 - 最終更新: 2026-11-13
-- 次にやること: requirements.md と design.md(【要確認】1〜3)を確認してもらう
+- 次にやること: ②③ のレビュー
 
 ## タスク
 ### 準備
-- [ ] requirements.md を確認してもらう
-- [ ] design.md を確認してもらう(【要確認】1〜3)
+- [x] requirements.md を確認してもらう
+- [x] design.md を確認してもらう(【要確認】1〜3 は案で確定)
 - [ ] ② プランのレビュー(design-reviewer・security-reviewer)
 - [ ] ③ テスト計画のレビュー(edge-case-reviewer)
 
