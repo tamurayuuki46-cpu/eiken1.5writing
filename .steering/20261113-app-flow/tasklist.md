@@ -1,0 +1,41 @@
+# tasklist.md — 画面の手前の進行役(Flow)
+
+## 状態
+- フェーズ: PR(⑥ 通過)
+- 最終更新: 2026-11-13
+- 次にやること: ⑦ PR の説明を更新してレビューに出す
+
+## タスク
+### 準備
+- [x] requirements.md を確認してもらう(ユーザー「再開してほしい」で案のまま進行)
+- [x] design.md を確認してもらう(【要確認】1・2 は案で確定、3 はレビューで変更 → ユーザー了承)
+- [x] ② プランのレビュー(design: P1 6・P2 7 / security: P1 2・P2 5)— P1 はすべて反映、P2 も大半を反映
+- [x] ③ テスト計画のレビュー(edge-case: P1 17・P2 5)— P1 をテスト方針に反映
+
+### 実装(tdd スキル)
+- [x] T1: SessionSummary(Core)
+- [x] T2: Flow プロジェクトとテストプロジェクトの追加(sln・CI・architecture.md・CLAUDE.md)
+- [x] T3: 起動(設定 → 単語データ → 学習記録 → 最初の画面、FatalScreen・BothCorrupt・StartFresh・Reload)
+- [x] T4: 再開できるかの確認(ResumeCheck)・再開・練習をやめる・終了して新しく始める
+- [x] T5: 練習の開始(選択の重ね合わせ・0語・開始の保存失敗)
+- [x] T6: 回答・判定・保存・再保存・次へ・結果
+- [x] T7: 受け付けない操作・通知の文言・再起動の通し
+
+### 検証
+- [x] `dotnet build -warnaserror` と `dotnet test` が全件通る(Core 444 / Flow 148 / Persistence 75。Red を確認してから実装。保存失敗の約束と再開の判定は実装を壊して Red を確認)
+- [x] 受入条件(requirements.md 5.)を1つずつ確認(すべて対応するテストあり)
+- [x] ⑥ 3体レビュー 1往復目(design: P1 4・P2 5 / edge: P1 3・P2 8 / security: P1 1・P2 5)— P1 をすべて修正。再開の確認の漏れは修正前で Red を確認
+- [x] ⑥ 3体レビュー 2往復目(security・edge: 通過 / design: P1 1 = 未回答の通常問題の再練習モード → 修正、修正前で Red を確認)
+- [x] ⑥ 3往復目(design のみ): 通過。P2(再練習回数0のテストが分岐を通らない)も修正し、判定を消すと Red を確認。最終 Core 444 / Flow 189 / Persistence 75
+
+### 片付け
+- [x] Answer の重複例外が読込後に起こりうるかの確認(起こらない。design 6章)
+- [ ] P2(⑥ 2往復目): 設定の読込の Reason を Diagnostic にも / WordSetInvalid の中身を Diagnostic に / 開始・破棄・StartFresh の失敗の Diagnostic にパスが無いことのテスト
+- [ ] P2(②⑥): Windows 専用テストが Linux で黙って通る(xUnit v2 に実行時の Skip が無い)/ 日をまたぐ克服のテストが既定値(苦手1・克服2回)に頼る / 100文字境界のサロゲートペアは Core のテストにある / Save が想定外の例外を投げたときの備え / 単語データのサイズ上限(WPF)/ 記録と単語データの版違い / 画面の状態を丸ごとログに出さない(WPF の design へ)
+- [x] 長く残す決定を docs/DECISIONS.md へ(「進行役 Flow」の節)
+- [x] 学びを CLAUDE.md の「学びメモ」に1行追記
+
+## メモ
+- 2026-11-13: CI はソリューション全体を対象にしているので ci.yml の変更は不要だった
+- 2026-11-13: 訳が空の単語は単語データの検査でエラー(起動が Fatal)。「日本語で出せない単語」は japaneseEligible: false で表す
+- 2026-11-13: ユーザー決定 — 置き場所は新プロジェクト、範囲は通し + 結果画面の集計、単語データはテスト用、画面の状態は進行役が持つ

@@ -6,7 +6,7 @@
 - 利用者: 英検準1級を受ける学習者本人(1人・1台の PC)
 - Core Value: 間違えたスペルを差分で示し、苦手語を克服するまで繰り返し出題する
 - やらないこと(v0.1): 手動バックアップ・JSON エクスポート/インポート・PC 移行(仕様 v1.0 13.6)、スマホ版の画面
-- 現在のフェーズ: 実装(Core)。WPF 画面・保存は未着手
+- 現在のフェーズ: 実装。Core・保存(Persistence)・進行役(Flow)まで完了。次は WPF 画面
 
 ## 2. 技術スタック
 - 言語・フレームワーク: C# / .NET 10 / WPF(画面のみ)
@@ -29,9 +29,11 @@ dotnet run --project src/EikenSpelling.Wpf   # 起動(Windows のみ。WPF 作�
 src/EikenSpelling.Core/   # 学習ロジック(Windows 非依存)
   Models/ Domain/ Application/ Settings/   # 層別(.claude/rules/architecture.md)
 src/EikenSpelling.Persistence/  # 保存・読込・復旧(Windows 非依存)
+src/EikenSpelling.Flow/   # 画面の手前の進行役: 起動・練習・保存失敗・破損時の画面の状態(Windows 非依存)
 src/EikenSpelling.Wpf/    # 画面・音声(未作成)
 tests/EikenSpelling.Core.Tests/  # xUnit
 tests/EikenSpelling.Persistence.Tests/  # xUnit(一時フォルダ)
+tests/EikenSpelling.Flow.Tests/  # xUnit(一時フォルダの本物のファイルで通しの流れ)
 docs/spec/                # 仕様書(正本)v1.0〜v1.2
 docs/DECISIONS.md         # コードに入っている決定の早見表
 .steering/_template/      # タスク文書の雛形。タスクごとに .steering/[日付]-[タスク]/ へコピー
@@ -90,6 +92,7 @@ prompts/8steps.md         # 8ステップの依頼文
 - 2026-11-13: クラウド環境でも NuGet に届けば .NET 10 SDK を入れて xUnit を実行できる(Core 84件通過を確認)。
 - 2026-11-13: クラウドでは dotnet をまとめて動かすとメモリ不足で exit 137 になることがある。`-m:1 -p:UseSharedCompilation=false` でビルドし、テストは `--no-build` でプロジェクトごとに実行する。
 - 2026-11-13: 足したテストが修正前のコードでも通ったら、上限や件数で問題が表に出ていないことを疑う(再確認の重複は10問では上限1で隠れ、20問で Red になった)。修正前のコードに一時的に戻して Red を確かめる。
+- 2026-11-13: 再開できるかの判定は「列に今ある問題」だけでなく「これから足されうる問題(再練習)」まで見る。列に足される前の分を見落とすと、レビューで2往復かかった。
 
 ## 12. 参照
 - @docs/DECISIONS.md
