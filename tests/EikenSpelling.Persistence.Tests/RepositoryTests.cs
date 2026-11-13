@@ -327,6 +327,20 @@ public class SettingsRepositoryTests
     }
 
     [Fact]
+    public void Settings_without_version_are_loaded()
+    {
+        using var dir = new TempDir();
+        dir.Write("settings.json", """{ "practice": { "questionCount": 20 } }""");
+        var before = dir.Snapshot();
+
+        var load = Repo(dir).Load();
+
+        Assert.Equal(LoadStatus.Loaded, load.Status);
+        Assert.Equal(20, load.Settings.Practice.QuestionCount);
+        Assert.Equal(before, dir.Snapshot());
+    }
+
+    [Fact]
     public void Newer_settings_with_changed_shape_is_not_recovered()
     {
         using var dir = new TempDir();

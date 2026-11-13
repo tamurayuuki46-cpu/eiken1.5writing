@@ -307,6 +307,7 @@ public class AtomicJsonFileTests
         var r = File(dir).Save("boom");
 
         Assert.False(r.Succeeded);
+        Assert.Contains("読み戻して", r.Reason);
         Assert.Equal("ok:1", dir.Read("progress.json"));
         Assert.Null(dir.Read("progress.json.tmp"));
     }

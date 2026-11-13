@@ -36,7 +36,7 @@ internal static class JsonVersionReader
                     throw new InvalidDataException($"{propertyName} が数ではありません。");
                 }
 
-                var value = property.Value.TryGetInt32(out var v) ? v : int.MaxValue;
+                var value = ToVersion(property.Value, propertyName);
                 if (found is not null && found != value)
                 {
                     throw new InvalidDataException($"{propertyName} が食い違って複数あります。");
@@ -51,5 +51,21 @@ internal static class JsonVersionReader
         {
             throw new InvalidDataException("JSON を読み込めません。", ex);
         }
+    }
+
+    /// <summary>整数だけを版として認める。int を超える正の整数は新しすぎる版(int.MaxValue)、小数・それ以外は不正。</summary>
+    private static int ToVersion(JsonElement value, string propertyName)
+    {
+        if (value.TryGetInt32(out var v))
+        {
+            return v;
+        }
+
+        if (value.TryGetDecimal(out var d) && d == decimal.Truncate(d) && d > int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        throw new InvalidDataException($"{propertyName} が整数ではありません。");
     }
 }

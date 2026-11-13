@@ -119,6 +119,21 @@ public class ProgressJsonTests
         Assert.True(ProgressJson.ReadSchemaVersion("""{ "schemaVersion": 99999999999 }""") > ProgressDocument.CurrentSchemaVersion);
     }
 
+    [Theory]
+    [InlineData("""{ "schemaVersion": 1.5 }""")]
+    [InlineData("""{ "schemaVersion": -1e20 }""")]
+    public void Fractional_or_huge_negative_schema_version_is_invalid(string json)
+    {
+        Assert.Throws<InvalidDataException>(() => ProgressJson.ReadSchemaVersion(json));
+    }
+
+    [Fact]
+    public void Settings_version_is_null_when_absent()
+    {
+        Assert.Null(LearningSettingsJson.ReadSettingsVersion("""{ "practice": { "questionCount": 20 } }"""));
+        Assert.Equal(1, LearningSettingsJson.ReadSettingsVersion("""{ "settingsVersion": 1 }"""));
+    }
+
     [Fact]
     public void Unknown_fields_are_ignored_and_missing_fields_get_defaults()
     {
