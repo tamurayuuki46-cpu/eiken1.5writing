@@ -294,11 +294,17 @@ public class FlowResumeTests
         using var env = new FlowEnv();
         env.Dir.Write(SettingsRepository.FileName, """{ "settingsVersion": 1, "practice": { "retryCount": 0 } }""");
         var first = env.Start();
-        first.StartPractice(Choices.Manual(Audio));
+        first.StartPractice(Choices.Auto(count: 5));
         first.AnswerCurrent(false);
-        env.WordsJson = Words.Json(Words.Five.Select(w => w with { Japanese = false }).ToArray());
+        // 誤答した単語の、再練習があったときのモードだけを使えなくする(再練習が無いので再開できるはず)
+        var q = env.Progress().Session!.Questions[0];
+        var retry = RetryModeRule.Choose(q.Mode, q.EligibleModes, autoMix: true);
+        Assert.NotEqual(q.Mode, retry);
+        env.WordsJson = Words.Json(Words.Five
+            .Select(w => w.Id != q.WordId ? w : retry == Japanese ? w with { Japanese = false } : w with { Audio = false })
+            .ToArray());
 
-        Assert.True(env.Start().As<ResumePromptScreen>().CanResume); // 手動は元のモードのまま。再練習も無い
+        Assert.True(env.Start().As<ResumePromptScreen>().CanResume);
     }
 
     [Fact]
