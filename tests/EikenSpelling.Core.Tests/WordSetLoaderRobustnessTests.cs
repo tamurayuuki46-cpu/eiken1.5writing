@@ -31,6 +31,15 @@ public class WordSetLoaderRobustnessTests
     }
 
     [Fact]
+    public void Explicit_null_is_allowed_for_nullable_fields()
+    {
+        var set = WordSetLoader.Parse("""{ "words": [ { "id": "tax", "word": "tax", "blanks": null, "frequencyRank": null } ] }""");
+
+        Assert.Null(set.Words[0].Blanks);
+        Assert.Null(set.Words[0].FrequencyRank);
+    }
+
+    [Fact]
     public void Missing_optional_fields_still_get_defaults()
     {
         var set = WordSetLoader.Parse("""{ "words": [ { "id": "tax", "word": "tax" } ] }""");

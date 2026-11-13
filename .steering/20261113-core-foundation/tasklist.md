@@ -3,7 +3,7 @@
 ## 状態
 - フェーズ: 検証(3体レビューの P1 を修正済み。163/163 通過)
 - 最終更新: 2026-11-13
-- 次にやること: 修正のコミット・push。次のタスク(学習記録・苦手/克服判定・再確認スケジュール)の ① プラン
+- 次にやること: PR を作って main へ(⑦)
 
 ## タスク
 - [x] T1: 単語データモデル・読込・検証(仕様 19章 1〜2)
@@ -21,6 +21,7 @@
 - [x] T11(P1-4): 定義外の enum 値(`"manualMode": 99` など)を検証で指摘する(manualMode / retryTiming / ordering)
 - [x] T12(P1-7): 未テストの検証ルール(新しい settingsVersion、reviewLimits 空・UpTo 0・Limit -1、weakWordScore の負数、手動モードが使えるときは指摘なし)
 - [x] T13(P1-7): 出題枠の境界(PlanSlots 0/1/6/11/21/-1、AllocateModes 0/1/-1、巨大な重みでも合計が問題数になる)
+- [x] T15: 修正の再レビュー(2往復目)。P1 1件(null 許容項目の文書とテスト)を修正。P0・P1 残りなし
 - [x] T14(P1-5・P1-6): DECISIONS.md に JSON の形・null の扱い・上限・Domain→Settings 参照可 を追記。architecture.md(PR #2)にも1行
 
 ## 片付け
