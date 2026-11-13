@@ -16,6 +16,7 @@ paths:
 
 ## 依存
 - 依存の向き: `Wpf → Core`、Core の中は `Application → Domain / Settings → Models`。逆向きの参照は禁止。
+- Domain → Settings の参照は認める(苦手度・克服の判定が設定値を使うため。v1.2 4章、DECISIONS.md「層の依存」)。Settings → Domain は禁止。
 - Core では次を使わない: `System.Windows.*`、ファイルの読み書き、`DateTime.Now` / `DateTime.Today`、`%APPDATA%` などの環境依存。
   時刻は `TimeProvider`、データは引数で受け取る。
 - 新しい NuGet パッケージの追加は、理由を添えて確認を取ってから。
