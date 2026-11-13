@@ -85,9 +85,11 @@ prompts/8steps.md         # 8ステップの依頼文
 - 変更内容と未解決事項を短く報告する。
 
 ## 11. 学びメモ(作業のたびに追記)
-- 2026-11-13: ImmutableArray を Assert.Equal で比べると参照比較になる。.ToArray() か SequenceEqual で比べる。
+- 2026-11-13: ImmutableArray を Assert.Equal で比べると参照比較になる。.ToArray() か SequenceEqual で比べる(2回目で testing.md に昇格)。
 - 2026-11-13: ファイル保存は Windows 非依存の Persistence に分けると、本物のファイルで Linux でもテストできる。失敗は IFileOperations の差し替えで起こす(権限は root で効かない)。
 - 2026-11-13: クラウド環境でも NuGet に届けば .NET 10 SDK を入れて xUnit を実行できる(Core 84件通過を確認)。
+- 2026-11-13: クラウドでは dotnet をまとめて動かすとメモリ不足で exit 137 になることがある。`-m:1 -p:UseSharedCompilation=false` でビルドし、テストは `--no-build` でプロジェクトごとに実行する。
+- 2026-11-13: 足したテストが修正前のコードでも通ったら、上限や件数で問題が表に出ていないことを疑う(再確認の重複は10問では上限1で隠れ、20問で Red になった)。修正前のコードに一時的に戻して Red を確かめる。
 
 ## 12. 参照
 - @docs/DECISIONS.md

@@ -10,7 +10,7 @@ public sealed record QuestionSlots(int NewWords, int WeakWords, int ReviewWords)
 }
 
 /// <summary>
-/// 設定に依存する出題枠の計算。単語の選び方そのものは QuestionSelector(未実装)が担当する。
+/// 設定に依存する出題枠の計算。単語の選び方そのものは QuestionSelectorが担当する。
 /// </summary>
 public static class QuestionPlanner
 {
