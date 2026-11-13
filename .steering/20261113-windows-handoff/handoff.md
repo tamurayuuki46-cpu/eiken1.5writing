@@ -32,7 +32,7 @@
 ### 1.4 文書と実装の食い違い(報告のみ。直していない)
 | # | 場所 | 食い違い | 重さ |
 |---|---|---|---|
-| D1 | 依頼の前提 ↔ 仕様書 | 依頼では「UI 技術は未決定」。しかし仕様 v1.0 15.1 は UI = **WPF**(音声 System.Speech)と決めており、v1.0 の「Overengineering」で「MAUI/Avalonia への移行」を v0.1 では採用しないと明記。CLAUDE.md・README・architecture.md も WPF 前提 | **要判断** |
+| D1 | 依頼の前提 ↔ 仕様書 | 依頼では「UI 技術は未決定」。しかし仕様 v1.0 15.1 は UI = **WPF**(音声 System.Speech)と決めており、v1.0 の「Overengineering」で「MAUI/Avalonia への移行」を v0.1 では採用しないと明記。CLAUDE.md・README・architecture.md も WPF 前提 | **解消(2026-11-13: ユーザーが WPF に決定。DECISIONS「UI 技術」)** |
 | D2 | README.md | 古い。構成に Flow・Flow.Tests が無い / 実装状況が「苦手度の計算は保留」「セッションの保存は未着手」のまま(どちらも完了)/ 苦手一覧・設定保存が無い / ビルド例が `dotnet build src/EikenSpelling.Core`(全体は `dotnet build -warnaserror`)/「スマホ(クラウド)= Core」の分担 | 中 |
 | D3 | `.steering/*/tasklist.md` | 8 タスクすべての「次にやること」が「⑦ PR を作る」などのまま(実際はすべてマージ済み)。未チェック項目は P2 の積み残し | 低 |
 | D4 | `docs/README.md` | product-requirements.md・architecture.md・data-model.md・glossary.md を「置く例」に挙げるが、どれも存在しない(雛形の文言) | 低 |
@@ -164,14 +164,14 @@ git switch -c feature/wpf-shell  # 作業ブランチ(名前は例)。main へ�
 ### 5.5 未決定事項
 | # | 事項 | 選択肢・メモ |
 |---|---|---|
-| U1 | UI 技術 | WPF(仕様どおり)/ Avalonia(仕様の変更が要る)。食い違い D1 の解消 |
+| U1 | UI 技術 | **決定済み: WPF**(2026-11-13、ユーザー決定。DECISIONS「UI 技術」) |
 | U2 | 日本語訳の辞書 | ライセンス確認待ち。初期 100 語の作り方(自作の訳など) |
 | U3 | auto-merge | main の保護ルール(必須チェック)を確認してから有効にするか |
 | U4 | README・古い tasklist の更新 | D2〜D4 を直すか(文書だけの変更) |
 | U5 | テスト SDK の更新 | Microsoft.NET.Test.Sdk の更新(NuGet の変更なので要承認) |
 
 ### 5.6 次に着手すべきタスク(順に)
-1. **U1 を決める**(UI 技術)。WPF なら仕様どおり、Avalonia なら仕様の変更を先に記録
+1. ~~U1 を決める~~ → **WPF に決定済み**(2026-11-13)
 2. **UI の骨組み**(① プランから): アプリの起動・二重起動の防止・保存先・単語データの読み込み → Flow の画面の状態を表示する画面の切り替え。ホーム → 練習 → 判定 → 結果 の最小の流れ
 3. 仮の単語データ(数語)で 起動 → 出題 → 保存 → 再起動 → 復元 を実機で確認
 4. 音声(System.Speech)・フラッシュ表示の計時・苦手一覧・設定画面
@@ -196,10 +196,10 @@ git switch -c feature/wpf-shell  # 作業ブランチ(名前は例)。main へ�
 最初にやること(コードは変えない):
 1. git status と git log -1 で、main の最新(bc70ca2 以降)にいることと作業ツリーがクリーンなことを確かめる。
 2. dotnet --list-sdks で .NET 10 があることを確かめ、dotnet build -warnaserror と dotnet test を実行して全件の結果を見せる(期待: 警告0、Core 499 / Flow 378 / Persistence 83)。
-3. 引き継ぎ資料の「未決定事項」のうち UI 技術(WPF / Avalonia)について、仕様 v1.0 15.1 と Overengineering の記述を踏まえて私に確認する。私が決めるまで UI の実装を始めない。Avalonia を選ぶ場合は、仕様からの差分として DECISIONS.md に記録してから進める。
+3. UI 技術は WPF に決定済み(DECISIONS.md「UI 技術」)。Avalonia などへの変更はしない。
 
-UI 技術が決まったら、8steps の ① プランとして「UI の骨組み(起動・二重起動の防止・保存先・単語データの読み込み・Flow の画面の状態の表示・ホーム → 練習 → 判定 → 結果)」の requirements.md と design.md を、書く前に私に質問してから作って。
-守ること: WPF(または選んだ UI)は Flow の画面の状態を表示して操作を渡すだけにし、学習ロジックを画面に書かない。NuGet の追加は理由を添えて確認を取る。main へ直接 push しない。作業はブランチを切って PR にする。
+続けて、8steps の ① プランとして「UI の骨組み(起動・二重起動の防止・保存先・単語データの読み込み・Flow の画面の状態の表示・ホーム → 練習 → 判定 → 結果)」の requirements.md と design.md を、書く前に私に質問してから作って。
+守ること: WPF は Flow の画面の状態を表示して操作を渡すだけにし、学習ロジックを画面に書かない。NuGet の追加は理由を添えて確認を取る。main へ直接 push しない。作業はブランチを切って PR にする。
 ```
 
 ---
@@ -217,6 +217,6 @@ UI 技術が決まったら、8steps の ① プランとして「UI の骨組�
 - GO の根拠: 未コミット・未 push の変更なし、未マージ PR なし、main で警告 0・960 件通過、CI は Windows でも通過、学習ロジック・保存・進行役は UI から切り離され文書(CLAUDE.md・DECISIONS.md・`.steering/`)もそろっている
 - 条件:
   1. PC で .NET 10 SDK・Git・Claude Code(claude.ai アカウントでログイン)を入れ、main で `dotnet build -warnaserror` と `dotnet test` が通ることを確かめる
-  2. UI 技術(U1)をユーザーが決めてから UI 実装に入る(仕様は WPF)
+  2. ~~UI 技術(U1)をユーザーが決める~~ → WPF に決定済み(2026-11-13)
   3. クラウドと PC で同じブランチを同時に使わない(PC は main から新しいブランチ)
   4. README などの古い記述(D2〜D4)を把握しておく(直すかは U4)

@@ -69,6 +69,11 @@
 - 克服までの残り = max(必要回数 − 連続正答, 1)(必要回数を下げた後も次の対象正答で克服するため)。再確認日・再確認待ちは克服済みだけに出す
 - 一覧から始める練習は苦手のみを常に真にする(期限が来た再確認は出る)。開く・並べ替える・戻るでは何も書かない
 
+## UI 技術(2026-11-13 確定)
+- UI は **WPF**(仕様 v1.0 15.1 どおり。音声は System.Speech)。ユーザーが WPF と Avalonia を比べて決定。v0.1 では Avalonia・MAUI に移らない(v1.0 Overengineering)
+- 画面のプロジェクト `EikenSpelling.Wpf` だけを Windows 専用にする。Core・Persistence・Flow は net10.0 のまま(Linux でもテストする)
+- 比較の記録: `.steering/20261113-windows-handoff/handoff.md` 4章
+
 ## 仕様からの差分
 - 保存処理は v1.2 4章の図(`EikenSpelling.Wpf/Persistence`)ではなく、独立した `EikenSpelling.Persistence`(net10.0)に置く(2026-11-13)。本物のファイルで Linux と Windows の両方でテストするため。仕様書は直していない
 - 起動・練習の進行・保存失敗と破損時の画面の状態は、v1.0 15.4(WPF の責務)ではなく独立した `EikenSpelling.Flow`(net10.0)に置く(2026-11-13)。保存失敗で次へ進まない約束などを Linux と Windows の両方でテストするため。WPF は画面の状態を表示し操作を渡すだけ。仕様書は直していない
