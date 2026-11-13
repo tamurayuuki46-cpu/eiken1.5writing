@@ -57,6 +57,7 @@ prompts/8steps.md         # 8ステップの依頼文
 - フェーズが変わったら /clear または /compact で文脈を整理する(技評 課題1、SB 第2章)。
 - 広い調査はサブエージェントに任せ、要約だけ受け取る(技評 課題1)。
 - 実装は tdd スキル、レビューは .claude/agents/ の3体、PRは create-pr スキルを使う。各段階の依頼文は prompts/8steps.md。
+- PR のマージは自動(2026-11-13 決定): Claude が作った PR は、3体レビューの P0・P1 が無くなったらドラフトを解除し、auto-merge(マージコミット)を有効にする。main の保護ルールで CI(Linux・Windows)の通過が必須。CI が落ちたら原因を直して push する。main の保護ルールで必須チェック `build & test (ubuntu-latest)`・`build & test (windows-latest)` を設定し、落ちる PR がマージされないことを確かめるまでは auto-merge を有効にしない。
 
 ## 7. コーディング規約
 - 命名は .NET の標準(型・メソッド・プロパティは PascalCase、ローカル変数・引数は camelCase、非公開フィールドは _camelCase)。

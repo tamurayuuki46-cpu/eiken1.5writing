@@ -27,6 +27,8 @@ dotnet test
 
 テストには NuGet から xUnit を取得する必要があります。
 
+PR と main への push では、GitHub Actions(`.github/workflows/ci.yml`)が Linux と Windows の両方で `dotnet build -warnaserror` と `dotnet test` を実行します。
+
 ## 開発の分担
 
 - **スマホ(クラウドの Claude Code)**:Core・テスト・単語データ
