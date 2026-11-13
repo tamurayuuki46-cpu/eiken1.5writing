@@ -5,7 +5,9 @@ using EikenSpelling.Core.Settings;
 
 namespace EikenSpelling.Persistence;
 
-public sealed record ProgressLoadResult(LoadStatus Status, ProgressDocument? Document, IReadOnlyList<string> Warnings, string? Reason);
+/// <summary>読込の結果。SessionDiscarded は、途中のセッションに不備があり捨てたこと(学習記録は読めている)。</summary>
+public sealed record ProgressLoadResult(
+    LoadStatus Status, ProgressDocument? Document, IReadOnlyList<string> Warnings, string? Reason, bool SessionDiscarded = false);
 
 /// <summary>
 /// progress.json の持ち主(Data Owner)。呼び出し順は 設定の Load → 学習記録の Load。
@@ -20,6 +22,9 @@ public sealed class ProgressRepository
     private readonly TimeProvider _time;
     private LearningSettings _settings = DefaultSettings.Create();
     private LoadStatus? _state;
+
+    // 読み方の中でセッションを捨てた文書(読込結果に SessionDiscarded として伝える)
+    private readonly HashSet<ProgressDocument> _discarded = new(ReferenceEqualityComparer.Instance);
 
     public ProgressRepository(string directory, TimeProvider? time = null, IFileOperations? files = null, TimeSpan? retryDelay = null)
     {
@@ -42,10 +47,22 @@ public sealed class ProgressRepository
             return new(LoadStatus.Unavailable, null, [], "保存先フォルダを用意できません。");
         }
 
+        _discarded.Clear();
         var load = _file.Load();
         _state = load.Status;
         var document = load.Status == LoadStatus.FirstRun ? new ProgressDocument() : load.Value;
-        return new(load.Status, document, load.Warnings, load.Reason);
+        var discarded = document is not null && _discarded.Contains(document);
+        var warnings = load.Warnings;
+        if (discarded)
+        {
+            // 壊れたセッションを含む元のファイルは、次の保存で上書きされる前に写しを残す
+            var copied = _file.PreserveMainCopy();
+            warnings = [.. warnings, copied
+                ? "前回の途中の練習を復元できませんでした(内容が正しくないため)。回答済みの記録は残っています。"
+                : "前回の途中の練習を復元できませんでした(内容が正しくないため)。元のファイルの写しを残せませんでした(写しを残せません)。回答済みの記録は残っています。"];
+        }
+
+        return new(load.Status, document, warnings, load.Reason, discarded);
     }
 
     public SaveResult Save(ProgressDocument document)
@@ -58,6 +75,12 @@ public sealed class ProgressRepository
                 : "読み込みの結果(新しい版・読めない・両方破損)のため、上書きしません。");
         }
 
+        // 不正なセッションは保存しない(次の読込で黙って捨てられるのを防ぐ)
+        if (document.Session is not null && SessionValidator.Validate(document.Session, document.Progress).Count > 0)
+        {
+            return SaveResult.Failure("途中の練習の内容が正しくないため、保存していません。");
+        }
+
         string json;
         try
         {
@@ -68,7 +91,9 @@ public sealed class ProgressRepository
             return SaveResult.Failure("学習記録を保存用の形に変換できませんでした。");
         }
 
-        return _file.Save(json);
+        var result = _file.Save(json);
+        _discarded.Clear(); // 保存の読み戻しで記録された分は使わない
+        return result;
     }
 
     /// <summary>BothCorrupt の後、利用者が確認したときだけ呼ぶ。壊れたファイルは退避名で残す。</summary>
@@ -109,21 +134,42 @@ public sealed class ProgressRepository
             return FileRead<ProgressDocument>.Newer($"新しい版のアプリで作られた学習記録です(schemaVersion {version})。");
         }
 
-        ProgressDocument document;
+        ParsedProgress parsed;
         try
         {
-            document = ProgressJson.Parse(json);
+            parsed = ProgressJson.ParseDetailed(json);
         }
         catch (InvalidDataException)
         {
             return FileRead<ProgressDocument>.Corrupt("学習記録を読み取れません。");
         }
 
-        var issues = ProgressValidator.Validate(document, _settings, _time.GetUtcNow());
+        var document = parsed.Document;
+        var issues = ProgressValidator.Validate(document.Progress, _settings, _time.GetUtcNow());
         if (issues.Any(i => i.Severity == ProgressIssueSeverity.Critical))
         {
             return FileRead<ProgressDocument>.Corrupt("学習記録の内容が成り立っていません: "
                 + string.Join(", ", issues.Where(i => i.Severity == ProgressIssueSeverity.Critical).Select(i => i.Code).Distinct()));
+        }
+
+        // セッションに不備があれば、セッションだけ捨てる(学習記録は読む)
+        var session = document.Session;
+        var discarded = parsed.SessionUnreadable;
+        if (session is not null && SessionValidator.Validate(session, document.Progress).Count > 0)
+        {
+            session = null;
+            discarded = true;
+        }
+
+        // 残すのは今のセッションの answerId だけ(完了・中止・強制終了で残った分を消す)
+        document = document with
+        {
+            Session = session,
+            Progress = SessionManager.PruneAnswerIds(document.Progress, session?.SessionId),
+        };
+        if (discarded)
+        {
+            _discarded.Add(document);
         }
 
         return FileRead<ProgressDocument>.Ok(document, issues.Select(i => i.Message).ToList());

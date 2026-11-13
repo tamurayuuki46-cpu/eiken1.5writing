@@ -25,7 +25,7 @@
 - 定義外の列挙値(JSON の数値 `"manualMode": 99` など)は SettingsValidator が指摘する
 
 ## 保存・復旧(2026-11-13)
-- progress.json = `{ schemaVersion, wordSetVersion, sourceVersion, progress }`(schemaVersion の正本は ProgressDocument)。セッションは次のタスクで任意項目として足す
+- progress.json = `{ schemaVersion, wordSetVersion, sourceVersion, progress, session? }`(schemaVersion の正本は ProgressDocument。Application に置く)
 - 保存: tmp に書いて Flush(true) → 読み戻して変換・検査 → File.Replace(tmp, 主, bak)(初回は移動)。入出力の失敗は最大3回再試行
 - 読込の結果: Loaded / FirstRun / RecoveredFromBackup / BothCorrupt / NewerVersion / Unavailable。後ろ3つは何も書き換えない
 - 復旧は「bak の中身を tmp へ → 壊れた主を退避名へ移動 → tmp を主へ」。壊れたファイルは `<元の名前>.corrupt-<日時ミリ秒>[-n].json` で残す(上限なし)。残った tmp は `.orphan-<日時>` で残す
@@ -35,6 +35,17 @@
 - 呼び出し順: 設定の Load → 学習記録の Load。保存先フォルダは絶対パスだけ
 - 二重起動は WPF で防ぐ(名前付き Mutex。2つ目は既存の画面を前に出して終了)。Persistence はアプリが1つだけ動いている前提
 - 限界: Windows の File.Replace が途中で止まると、最後の1問分が orphan の tmp にだけ残ることがある
+
+## セッション(2026-11-13)
+- 出題一覧(単語ID・綴り・モード・使えるモード)を受け取って始める。開始時の設定を丸ごと保存し、途中で設定を変えても使わない(v1.2 7章)
+- 通常問題と再練習を1本の列で持ち、列の位置が通し番号(questionIndex)。位置・再練習回数は保存しない
+- 再練習: 通常問題をすべて終えた後、誤答した単語を通常問題の順に。正解するまで最大 RetryCount 回(2回目以降は列の最後)。
+  モードは手動なら同じ、自動ミックスなら 日本語 → 音声 → 穴あき → フラッシュ の順で元以外かつ使える最初のもの(無ければ同じ)。単語ごとに最初に決めて以後も同じ
+- 回答済みは {正誤, 状態の変化} だけ持ち、入力は持たない。完了・中止したセッションは保存しない(Session = null)
+- answerId は未完了のセッションの分だけ残す(完了・中止の時点と読込時に整理)
+- 保存失敗時の約束: 呼び出し側は SessionManager.Answer が返した学習記録とセッションを保存し直す。Answer を同じ問題でもう一度呼ばない(呼ぶと重複として例外)
+- 読込でセッションに不備があれば、セッションだけ捨てて知らせる(学習記録は読む。元のファイルの写しを退避名で残す)
+- 古い版のアプリで開くと session は無視され、次の保存で消える(学習記録は残る)
 
 ## 仕様からの差分
 - 保存処理は v1.2 4章の図(`EikenSpelling.Wpf/Persistence`)ではなく、独立した `EikenSpelling.Persistence`(net10.0)に置く(2026-11-13)。本物のファイルで Linux と Windows の両方でテストするため。仕様書は直していない
