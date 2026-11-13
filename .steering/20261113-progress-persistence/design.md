@@ -3,7 +3,7 @@
 <!-- 置き場所: .steering/20261113-progress-persistence/design.md -->
 
 ## 1. 方針
-- 【要確認】1 **新しいプロジェクト `EikenSpelling.Persistence`(net10.0、Windows 非依存)** にファイル操作を置く。WPF は保存先フォルダを渡すだけ。
+- 【確定 2026-11-13】1 **新しいプロジェクト `EikenSpelling.Persistence`(net10.0、Windows 非依存)** にファイル操作を置く。WPF は保存先フォルダを渡すだけ。
   一時フォルダを使って本物のファイルでテストでき、Linux(クラウド)と Windows の両方で同じテストが動く。
   v1.2 4章の図(`EikenSpelling.Wpf/Persistence`)と architecture.md「ファイル保存は Wpf」を更新する
 - 学習記録の型・検査は Core に置く(ファイルに触れない)。JSON 変換は Core の既存の形(`LearningSettingsJson`)にそろえる
@@ -25,17 +25,17 @@
 | Core/Application/ProgressJson.cs | ProgressDocument と文字列の変換(壊れていれば InvalidDataException) | 新規 |
 | Core/Domain/ProgressValidator.cs | 学習記録の検査(4章) | 新規 |
 | Core/Models/ModeRecord.cs・WordProgress.cs | 計算プロパティ(Accuracy・NormalMistakes)に `[JsonIgnore]` | 変更 |
-| Core/Application/AnswerRecorder.cs・Settings/SettingsLimits.cs | 誤答入力を `MaxInputLength`(【要確認】2: 100文字)で切り詰める | 変更 |
+| Core/Application/AnswerRecorder.cs・Settings/SettingsLimits.cs | 誤答入力を `MaxInputLength`(【確定】2: 100文字)で切り詰める | 変更 |
 | tests/EikenSpelling.Persistence.Tests/ | xUnit(既存のテストプロジェクトと同じパッケージ・同じ版) | 新規 |
 | EikenSpelling.sln・README・docs/DECISIONS.md・.claude/rules/architecture.md・database.md | プロジェクトの追加と決定の反映 | 変更 |
 
 ## 3. データ
 - progress.json: `{ "schemaVersion": 1, "wordSetVersion": "...", "sourceVersion": "...", "progress": { "words": {...}, "appliedAnswerIds": [...] } }`
-  - 日時はオフセット付きの ISO 8601 で、受け取った値のまま保存(【要確認】3: オフセットはそろえない。比較は瞬間で行われるため)
+  - 日時はオフセット付きの ISO 8601 で、受け取った値のまま保存(【確定 2026-11-13】3: オフセットはそろえない。比較は瞬間で行われるため)
   - 読込後に辞書の比較方法(`StringComparer.Ordinal`)を付け直す
 - settings.json: 既存の `LearningSettingsJson` の形のまま
 - ファイル: `progress.json` / `progress.bak.json` / `progress.json.tmp`、`settings.json` / `settings.bak.json` / `settings.json.tmp`。
-  壊れたファイルの退避名は `progress.corrupt-<日時>.json`(【要確認】4)
+  壊れたファイルの退避名は `progress.corrupt-<日時>.json`(【確定 2026-11-13】4)
 - Data Owner: ProgressRepository / SettingsRepository だけがファイルを書く
 - Schema: 新規(progress.json の初版)。バージョンが新しすぎるファイルは読まずに「壊れている」と同じ扱いにはせず、別の結果(`NewerVersion`)で知らせて上書きしない
 
@@ -74,10 +74,10 @@
 - 結合・手動確認: WPF ができたら Windows で「保存 → 再起動 → 復元」を確かめる(このタスクの外)
 
 ## 6. リスクと未決事項
-- 【要確認】1 置き場所は新しい Persistence プロジェクト(ユーザーの希望は「指定なし」だったので推奨案で設計)
-- 【要確認】2 誤答入力の上限は 100 文字(超えた分は切り捨て)
-- 【要確認】3 日時のオフセットはそろえず、受け取った値のまま保存する
-- 【要確認】4 壊れたファイルは消さず `progress.corrupt-<yyyyMMdd-HHmmss>.json` の名前でコピーして残す。いくつまで残すかの上限は設けない
-- 【要確認】5 新しすぎる schemaVersion のファイルは「壊れている」とは別の結果で知らせ、上書きも復旧もしない(新しい版のアプリで作った記録を守る)
+- 【確定 2026-11-13】1 置き場所は新しい Persistence プロジェクト(ユーザーの希望は「指定なし」だったので推奨案で設計)
+- 【確定 2026-11-13】2 誤答入力の上限は 100 文字(超えた分は切り捨て)
+- 【確定 2026-11-13】3 日時のオフセットはそろえず、受け取った値のまま保存する
+- 【確定 2026-11-13】4 壊れたファイルは消さず `progress.corrupt-<yyyyMMdd-HHmmss>.json` の名前でコピーして残す。いくつまで残すかの上限は設けない
+- 【確定 2026-11-13】5 新しすぎる schemaVersion のファイルは「壊れている」とは別の結果で知らせ、上書きも復旧もしない(新しい版のアプリで作った記録を守る)
 - リスク: `File.Replace` は同じドライブ上でしか使えない。保存先・bak・tmp は同じフォルダに置くので問題ない
 - リスク: 新しいテストプロジェクトのパッケージは既存と同じ版を使うので、新しい依存は増えないが、プロジェクトは1つ増える

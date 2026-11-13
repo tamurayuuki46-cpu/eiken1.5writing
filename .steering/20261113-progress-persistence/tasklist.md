@@ -1,14 +1,14 @@
 # tasklist.md — 保存・復旧(progress.json / settings.json)
 
 ## 状態
-- フェーズ: 要件・設計(① プラン。確認待ち)
+- フェーズ: 設計(②③ レビュー中)
 - 最終更新: 2026-11-13
-- 次にやること: design.md の【要確認】1〜5 を確認してもらい、②③ のレビューへ
+- 次にやること: ②③ の結果を報告し、P0・P1 を設計に反映
 
 ## タスク
 ### 準備
-- [ ] requirements.md を確認してもらう
-- [ ] design.md を確認してもらう(【要確認】1〜5)
+- [x] requirements.md を確認してもらう
+- [x] design.md を確認してもらう(【要確認】1〜5 は案どおり確定)
 - [ ] ② プランのレビュー(design-reviewer・security-reviewer)
 - [ ] ③ テスト計画のレビュー(edge-case-reviewer)
 
