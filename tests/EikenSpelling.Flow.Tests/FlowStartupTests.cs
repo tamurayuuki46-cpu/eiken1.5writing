@@ -286,7 +286,8 @@ public class FlowStartupTests
 
         var flow = env.Start();
 
-        Assert.Single(flow.As<HomeScreen>().Notices);
+        var notice = Assert.Single(flow.As<HomeScreen>().Notices);
+        Assert.Contains("バックアップから復元", notice, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -328,7 +329,7 @@ public class FlowStartupTests
     }
 
     [Fact]
-    public void Old_answer_ids_beside_unfinished_session_do_not_block_resumed_answers()
+    public void Old_answer_ids_beside_unfinished_session_are_removed_and_resume_works()
     {
         using var env = new FlowEnv();
         var first = env.Start();

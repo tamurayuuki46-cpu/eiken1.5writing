@@ -25,10 +25,12 @@
 - [x] `dotnet build -warnaserror` と `dotnet test` が全件通る(Core 444 / Flow 148 / Persistence 75。Red を確認してから実装。保存失敗の約束と再開の判定は実装を壊して Red を確認)
 - [x] 受入条件(requirements.md 5.)を1つずつ確認(すべて対応するテストあり)
 - [x] ⑥ 3体レビュー 1往復目(design: P1 4・P2 5 / edge: P1 3・P2 8 / security: P1 1・P2 5)— P1 をすべて修正。再開の確認の漏れは修正前で Red を確認
-- [ ] ⑥ 3体レビュー 2往復目
+- [x] ⑥ 3体レビュー 2往復目(security・edge: 通過 / design: P1 1 = 未回答の通常問題の再練習モード → 修正、修正前で Red を確認)
+- [ ] ⑥ 3往復目(design のみ)
 
 ### 片付け
 - [x] Answer の重複例外が読込後に起こりうるかの確認(起こらない。design 6章)
+- [ ] P2(⑥ 2往復目): 設定の読込の Reason を Diagnostic にも / WordSetInvalid の中身を Diagnostic に / 開始・破棄・StartFresh の失敗の Diagnostic にパスが無いことのテスト
 - [ ] P2(②⑥): Windows 専用テストが Linux で黙って通る(xUnit v2 に実行時の Skip が無い)/ 日をまたぐ克服のテストが既定値(苦手1・克服2回)に頼る / 100文字境界のサロゲートペアは Core のテストにある / Save が想定外の例外を投げたときの備え / 単語データのサイズ上限(WPF)/ 記録と単語データの版違い / 画面の状態を丸ごとログに出さない(WPF の design へ)
 - [ ] 長く残す決定を docs/DECISIONS.md へ
 - [ ] 学びを CLAUDE.md の「学びメモ」に1行追記

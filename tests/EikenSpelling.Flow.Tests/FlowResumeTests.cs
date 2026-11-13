@@ -268,6 +268,40 @@ public class FlowResumeTests
     }
 
     [Fact]
+    public void Retry_mode_not_available_for_unanswered_question_prevents_resume()
+    {
+        using var env = new FlowEnv();
+        var first = env.Start();
+        first.StartPractice(Choices.Auto(count: 5));
+        first.AnswerCurrent(true);
+        // まだ答えていない通常問題のうち、誤答したときの再練習のモードが自分のモードと違うもの
+        var target = env.Progress().Session!.Questions.Skip(1)
+            .Select(q => (Question: q, Retry: RetryModeRule.Choose(q.Mode, q.EligibleModes, autoMix: true)))
+            .First(x => x.Retry != x.Question.Mode && x.Retry is Japanese or Audio);
+        env.WordsJson = Words.Json(Words.Five
+            .Select(w => w.Id != target.Question.WordId ? w
+                : target.Retry == Japanese ? w with { Japanese = false } : w with { Audio = false })
+            .ToArray());
+
+        var prompt = env.Start().As<ResumePromptScreen>();
+
+        Assert.False(prompt.CanResume); // 問題そのものは出せるが、誤答したら答えようのない再練習になる
+    }
+
+    [Fact]
+    public void Retry_count_zero_does_not_check_retry_modes()
+    {
+        using var env = new FlowEnv();
+        env.Dir.Write(SettingsRepository.FileName, """{ "settingsVersion": 1, "practice": { "retryCount": 0 } }""");
+        var first = env.Start();
+        first.StartPractice(Choices.Manual(Audio));
+        first.AnswerCurrent(false);
+        env.WordsJson = Words.Json(Words.Five.Select(w => w with { Japanese = false }).ToArray());
+
+        Assert.True(env.Start().As<ResumePromptScreen>().CanResume); // 手動は元のモードのまま。再練習も無い
+    }
+
+    [Fact]
     public void Mistaken_word_still_available_for_retry_allows_resume()
     {
         using var env = new FlowEnv();

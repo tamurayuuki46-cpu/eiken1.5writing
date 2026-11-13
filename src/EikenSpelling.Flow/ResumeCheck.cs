@@ -35,8 +35,8 @@ internal static class ResumeCheck
     }
 
     /// <summary>
-    /// これから出る問題: 列の未回答の分と、通常問題の途中ならまだ列に足されていない再練習
-    /// (回答済みの通常問題の誤答。モードは SessionManager と同じ RetryModeRule で決まる)。
+    /// これから出うる問題: 列の未回答の分と、通常問題の途中なら、まだ列に足されていない再練習
+    /// (回答済みの通常問題の誤答と、まだ答えていない通常問題が誤答になった場合。モードは SessionManager と同じ RetryModeRule で決まる)。
     /// </summary>
     private static IEnumerable<(string WordId, string Word, LearningMode Mode)> UpcomingQuestions(PracticeSession session)
     {
@@ -51,10 +51,11 @@ internal static class ResumeCheck
             yield break; // 再練習はすでに列に入っている(または無い)
         }
 
-        for (var i = 0; i < session.Position; i++)
+        for (var i = 0; i < session.NormalCount; i++)
         {
             var q = session.Questions[i];
-            if (q.Attempt == AttemptType.Normal && !session.Answers[i].IsCorrect)
+            var mayRetry = i >= session.Position || !session.Answers[i].IsCorrect;
+            if (mayRetry)
             {
                 yield return (q.WordId, q.Word, RetryModeRule.Choose(q.Mode, q.EligibleModes, practice.AutoMix));
             }
