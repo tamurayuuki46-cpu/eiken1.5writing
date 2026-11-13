@@ -11,12 +11,12 @@
 |---|---|---|
 | Core/Domain/WeakWordScorer.cs | 苦手度の計算と並べ方 | 新規 |
 | Core/Domain/ModeEligibility.cs | 単語ごとの使えるモード | 新規 |
-| Core/Application/QuestionSelector.cs | SelectionInput / SelectionResult / Select | 新規 |
+| Core/Application/QuestionSelector.cs | Select(単語データ, 学習記録, 設定, 使えるモード, 現在時刻, 乱数)/ SelectionResult / SelectionEmptyReason | 新規 |
 | docs/DECISIONS.md | 苦手度を正式採用、選択の決まり | 変更 |
 
 ## 3. データ
 - 入力: WordSet、LearningProgress、LearningSettings、使えるモード(IReadOnlySet<LearningMode>)、now(DateTimeOffset)、Random
-- 出力: SelectionResult { Plan: PlannedQuestion の一覧、Slots: 実際の 新規・苦手・再確認 の数、EmptyReason: 0語のときの理由(列挙)}
+- 出力: SelectionResult { Plan: PlannedQuestion の一覧、Unseen・Seen・Weak・Review: 選んだ単語の種類ごとの数(Weak は新規の枠を補った苦手も含む)、EmptyReason: 0語のときの理由 }(⑥ レビューで実装に合わせて修正)
 - 保存するデータの変更なし
 
 ## 4. 処理の流れ

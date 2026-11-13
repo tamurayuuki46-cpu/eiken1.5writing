@@ -27,8 +27,6 @@ public sealed record SelectionResult(
 /// </summary>
 public static class QuestionSelector
 {
-    private static readonly LearningMode[] Priority = [LearningMode.Japanese, LearningMode.Audio, LearningMode.Blank, LearningMode.Flash];
-
     public static SelectionResult Select(
         WordSet wordSet, LearningProgress progress, LearningSettings settings,
         IReadOnlySet<LearningMode> availableModes, DateTimeOffset now, Random random)
@@ -43,6 +41,7 @@ public static class QuestionSelector
             throw new ArgumentException("設定に不正な値があるため、出題を選べません。", nameof(settings));
         }
 
+        // 今は TierThenFrequency だけ(SettingsValidator が定義外の値を弾く)。列挙に値を足したときの安全策
         if (settings.Vocabulary.Ordering != NewWordOrdering.TierThenFrequency)
         {
             throw new ArgumentException("新規単語の並べ方が対応外です。", nameof(settings));
@@ -66,13 +65,21 @@ public static class QuestionSelector
             candidates.Add(new Candidate(word, modes, progress.Word(word.Id), word.Sources.Any(enabled.Contains)));
         }
 
-        var review = candidates
-            .Where(c => c.Record is { } r && ReviewScheduler.IsDue(r, today))
-            .OrderBy(c => c.Record!.NextReviewDate)
-            .ThenBy(c => c.Word.Id, StringComparer.Ordinal)
+        // 再確認の並びは ReviewScheduler の期限一覧に任せる(予定日の古い順・同じ日は単語ID順)
+        var byId = candidates.ToDictionary(c => c.Word.Id, StringComparer.Ordinal);
+        var review = ReviewScheduler.DueWordIds(progress, today)
+            .Where(id => byId.TryGetValue(id, out var c) && c.Record is { } r && ReviewScheduler.IsDue(r, today))
+            .Select(id => byId[id])
             .ToList();
-        var weakById = candidates.Where(c => c.Record?.State == LearningState.Weak).ToDictionary(c => c.Word.Id, StringComparer.Ordinal);
-        var weak = WeakWordScorer.Order(weakById.Values.Select(c => c.Record!), settings, now).Select(r => weakById[r.WordId]).ToList();
+
+        // 苦手度の順に並べた記録から、同じ記録を持つ候補へ戻す(ID ではなく記録そのもので対応させる)
+        var weakByRecord = new Dictionary<WordProgress, Candidate>(ReferenceEqualityComparer.Instance);
+        foreach (var c in candidates.Where(c => c.Record?.State == LearningState.Weak))
+        {
+            weakByRecord[c.Record!] = c;
+        }
+
+        var weak = WeakWordScorer.Order(weakByRecord.Keys, settings, now).Select(r => weakByRecord[r]).ToList();
 
         // 新規の枠に入る単語だけ語彙リストで絞る(苦手・再確認は管理を続ける。v1.0 9.1)
         var tieKeys = candidates.ToDictionary(c => c.Word.Id, _ => random.NextDouble(), StringComparer.Ordinal);
@@ -115,7 +122,8 @@ public static class QuestionSelector
     {
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
         return wordSet.Words
-            .Where(w => w is not null && !string.IsNullOrWhiteSpace(w.Id) && !string.IsNullOrWhiteSpace(w.Word) && seenIds.Add(w.Id))
+            .Where(w => w is not null && !string.IsNullOrWhiteSpace(w.Id) && !string.IsNullOrWhiteSpace(w.Word)
+                && w.Sources is not null && seenIds.Add(w.Id))
             .ToList();
     }
 
@@ -138,12 +146,13 @@ public static class QuestionSelector
             LearningMode mode;
             if (withRoom.Count > 0)
             {
-                mode = withRoom.OrderByDescending(m => remaining[m]).ThenBy(m => Array.IndexOf(Priority, m)).First();
+                // 同数は LearningMode の並び(日本語 → 音声 → 穴あき → フラッシュ)= 優先順
+                mode = withRoom.OrderByDescending(m => remaining[m]).ThenBy(m => (int)m).First();
                 remaining[mode]--;
             }
             else
             {
-                mode = c.Modes.OrderBy(m => practice.ModeWeights[m] > 0 ? 0 : 1).ThenBy(m => Array.IndexOf(Priority, m)).First();
+                mode = c.Modes.OrderBy(m => practice.ModeWeights[m] > 0 ? 0 : 1).ThenBy(m => (int)m).First();
             }
 
             assigned[c.Word.Id] = mode;
@@ -177,7 +186,8 @@ public static class QuestionSelector
             return SelectionEmptyReason.ManualModeUnavailable;
         }
 
-        if (candidates.Count == 0)
+        // 出せる単語の判定は、出題の対象になりうる範囲(語彙リスト内・苦手・期限が来た再確認)だけで行う
+        if (!candidates.Any(c => c.InSources || c.Record?.State == LearningState.Weak || (c.Record is { } r && ReviewScheduler.IsDue(r, today))))
         {
             return SelectionEmptyReason.NoEligibleWords;
         }

@@ -348,6 +348,46 @@ public class QuestionSelectorSlotTests
 public class QuestionSelectorFilterTests
 {
     [Fact]
+    public void Seen_words_pick_oldest_asked_then_id()
+    {
+        var weakWords = Sel.Many("k", 10);
+        var p = Sel.P(weakWords.Select(w => Sel.Weak(w.Id)),
+            [Sel.Normal("sb", Sel.Now.AddDays(-9)), Sel.Normal("sa", Sel.Now.AddDays(-9)), Sel.Normal("sc", Sel.Now.AddDays(-1))]);
+
+        // 6問 = 新規3・苦手3。未出題2語のあと、既出から1語だけ
+        var r = Sel.Run(Sel.Set(Sel.Many("u", 2), [Sel.W("sb"), Sel.W("sa"), Sel.W("sc")], weakWords), p, Sel.Settings(count: 6));
+
+        Assert.Contains("sa", r.Ids());
+        Assert.DoesNotContain("sb", r.Ids());
+        Assert.DoesNotContain("sc", r.Ids());
+    }
+
+    [Fact]
+    public void Review_and_weak_outside_sources_are_selected_but_seen_is_not()
+    {
+        var p = Sel.P([Sel.Weak("k1"), Sel.Mastered("m1", Sel.Today), Sel.Normal("s1", Sel.Now.AddDays(-3))]);
+
+        var r = Sel.Run(Sel.Set([Sel.W("k1"), Sel.W("m1"), Sel.W("s1"), Sel.W("u1")]), p, Sel.Settings(sources: ["NAWL"]));
+
+        Assert.Equal(["k1", "m1"], r.Ids().Order());
+    }
+
+    [Fact]
+    public void Weak_record_with_mismatched_id_and_null_sources_do_not_throw()
+    {
+        var p = LearningProgress.Empty with
+        {
+            Words = ImmutableDictionary<string, WordProgress>.Empty.WithComparers(StringComparer.Ordinal).Add("k1", Sel.Weak("k2")),
+        };
+        var words = Sel.Set([Sel.W("k1"), Sel.W("u1") with { Sources = null! }, Sel.W("u2")]);
+
+        var r = Sel.Run(words, p);
+
+        Assert.DoesNotContain("u1", r.Ids());
+        Assert.Contains("u2", r.Ids());
+    }
+
+    [Fact]
     public void Sources_filter_only_new_words()
     {
         var ngslWeak = Sel.W("k1");
@@ -434,6 +474,23 @@ public class QuestionSelectorFilterTests
     }
 
     [Fact]
+    public void Empty_reason_priority_and_scope()
+    {
+        // 語彙リストに単語なし と 手動モードが使えない が重なる → 語彙リストが先
+        var both = QuestionSelector.Select(Sel.Set([Sel.W("u1")]), LearningProgress.Empty,
+            Sel.Settings(autoMix: false, manual: Audio, sources: ["BSL"]), Sel.NoAudio, Sel.Now, new Random(1));
+        Assert.Equal(SelectionEmptyReason.NoWordsInSources, both.EmptyReason);
+
+        // リスト外の苦手だけがある(出せない)→ 語彙リストのせいではない
+        var weakOutside = Sel.Run(Sel.Set([Sel.W("k1", ja: false, audio: false)]), Sel.P([Sel.Weak("k1")]), Sel.Settings(sources: ["BSL"]));
+        Assert.Equal(SelectionEmptyReason.NoEligibleWords, weakOutside.EmptyReason);
+
+        // リスト内の単語はどれも出せず、リスト外に出せる単語がある → 出せる単語なし
+        var listIneligible = Sel.Run(Sel.Set([Sel.W("u1", ja: false, audio: false), Sel.W("u2", sources: "BSL")]), s: Sel.Settings(sources: ["NGSL"]));
+        Assert.Equal(SelectionEmptyReason.NoEligibleWords, listIneligible.EmptyReason);
+    }
+
+    [Fact]
     public void Invalid_settings_or_unknown_ordering_throw()
     {
         Assert.Throws<ArgumentException>(() => Sel.Run(Sel.Set([Sel.W("u1")]), s: Sel.Settings(count: 0)));
@@ -488,6 +545,28 @@ public class QuestionSelectorModeTests(ITestOutputHelper output)
 
         Assert.All(r.Plan, q => Assert.Contains(q.Mode, q.EligibleModes));
         Assert.Equal([3, 3, 2, 2], Enum.GetValues<LearningMode>().Select(m => CountModes(r)[m]));
+    }
+
+    [Fact]
+    public void Zero_weight_mode_is_used_only_as_last_fallback()
+    {
+        // 重み: 日本語0・音声3・穴あき0・フラッシュ3。単語は音声不可 → フラッシュの目標を使い切った後も、重み0の日本語・穴あきより重みのあるフラッシュ
+        var s = Sel.Settings() with { Practice = Sel.Settings().Practice with { ModeWeights = new ModeWeights { Japanese = 0, Audio = 3, Blank = 0, Flash = 3 } } };
+
+        var r = Sel.Run(Sel.Set(Enumerable.Range(0, 10).Select(i => Sel.W($"u{i:D2}", audio: false))), s: s);
+
+        Assert.All(r.Plan, q => Assert.Equal(Flash, q.Mode));
+    }
+
+    [Fact]
+    public void Weighted_modes_unavailable_fall_back_by_priority()
+    {
+        // 重みは音声だけ、端末に音声なし → 目標はすべて0。使える中で優先順の先頭(日本語)
+        var s = Sel.Settings() with { Practice = Sel.Settings().Practice with { ModeWeights = new ModeWeights { Japanese = 0, Audio = 3, Blank = 0, Flash = 0 } } };
+
+        var r = Sel.Run(Sel.Set(Sel.Many("u", 10)), s: s, modes: Sel.NoAudio);
+
+        Assert.All(r.Plan, q => Assert.Equal(Japanese, q.Mode));
     }
 
     [Fact]
