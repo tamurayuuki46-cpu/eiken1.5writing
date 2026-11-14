@@ -31,12 +31,14 @@ public static class FocusRing
 
         element.GotKeyboardFocus -= OnGotFocus;
         element.LostKeyboardFocus -= OnLostFocus;
+        element.Loaded -= OnLoaded;
         element.Unloaded -= OnUnloaded;
         Remove(element);
         if ((bool)e.NewValue)
         {
             element.GotKeyboardFocus += OnGotFocus;
             element.LostKeyboardFocus += OnLostFocus;
+            element.Loaded += OnLoaded;
             element.Unloaded += OnUnloaded;
             if (element.IsKeyboardFocused)
             {
@@ -59,6 +61,15 @@ public static class FocusRing
         if (sender is FrameworkElement element && !element.IsKeyboardFocused)
         {
             Remove(element);
+        }
+    }
+
+    // フォーカスを得たときに層が無かった・木に付け直された場合のやり直し
+    private static void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { IsKeyboardFocused: true } element)
+        {
+            Add(element);
         }
     }
 
@@ -91,7 +102,9 @@ public static class FocusRing
         }
 
         element.ClearValue(AdornerProperty);
-        AdornerLayer.GetAdornerLayer(element)?.Remove(adorner);
+
+        // 層は装飾の親から取る(部品が木から外れた後の Unloaded・LostKeyboardFocus では、部品からたどると層が見つからない)
+        (VisualTreeHelper.GetParent(adorner) as AdornerLayer)?.Remove(adorner);
     }
 
     /// <summary>部品の外側 5px に角丸 14・太さ 2 の輪(旧 FocusRing スタイルと同じ見た目)。</summary>
