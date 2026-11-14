@@ -1,0 +1,63 @@
+<UserControl x:Class="EikenSpelling.Wpf.Views.QuestionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding QuitCommand}" />
+    </UserControl.InputBindings>
+    <DockPanel>
+        <!-- 進捗バー(上端) -->
+        <ProgressBar DockPanel.Dock="Top" Height="4" Minimum="0" Maximum="1" Value="{Binding Progress, Mode=OneWay}"
+                     Background="{StaticResource Border}" Foreground="{StaticResource Accent}" BorderThickness="0"
+                     AutomationProperties.Name="進み具合" Focusable="False" />
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+            <StackPanel MaxWidth="760" Margin="24,16,24,24">
+                <DockPanel Margin="0,0,0,4">
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Sub}" FontSize="14">
+                        <Run Text="{Binding Number, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding Total, Mode=OneWay}" />
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="{StaticResource MistakeSofter}" CornerRadius="6" Padding="10,2" Margin="0,0,10,0"
+                                Visibility="{Binding IsRetry, Converter={StaticResource BoolToVisible}}">
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource MistakeText}" Text="再練習" />
+                        </Border>
+                        <TextBlock Style="{StaticResource Sub}" FontSize="14" Text="{Binding ModeName}" />
+                    </StackPanel>
+                </DockPanel>
+                <TextBlock Style="{StaticResource Sub}" HorizontalAlignment="Right" Text="{Binding RetryNote}"
+                           Visibility="{Binding RetryNote, Converter={StaticResource NotNullToVisible}}" />
+
+                <!-- 問題: 日本語は意味、穴あきは穴あき表示と文字数 -->
+                <StackPanel Margin="0,48,0,32" HorizontalAlignment="Center">
+                    <TextBlock Style="{StaticResource Body}" FontSize="{StaticResource PromptSize}" FontWeight="Bold" TextAlignment="Center"
+                               Text="{Binding Prompt}" Visibility="{Binding IsBlankMode, Converter={StaticResource FalseToVisible}}" />
+                    <StackPanel Visibility="{Binding IsBlankMode, Converter={StaticResource BoolToVisible}}">
+                        <TextBlock FontFamily="{StaticResource WordFont}" FontSize="46" FontWeight="Bold" Foreground="{StaticResource Text}"
+                                   HorizontalAlignment="Center" Text="{Binding Prompt}" />
+                        <TextBlock Style="{StaticResource Sub}" FontSize="14" HorizontalAlignment="Center" Margin="0,6,0,0">
+                            <Run Text="{Binding LetterCount, Mode=OneWay}" /><Run Text="文字" />
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Width="560">
+                    <Label Target="{Binding ElementName=AnswerBox}" Padding="0,0,0,6" FontSize="14" Foreground="{StaticResource TextSub}" Content="英単語を入力(全部のスペル)" />
+                    <TextBox x:Name="AnswerBox" Style="{StaticResource AnswerBox}"
+                             Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
+                             InputMethod.IsInputMethodEnabled="False" InputMethod.PreferredImeState="Off"
+                             AutomationProperties.Name="回答の入力欄">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding AnswerCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,0" Text="英単語を入力してください"
+                               Visibility="{Binding IsInputBlank, Converter={StaticResource BoolToVisible}}" />
+                    <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="Enter で回答 ・ Esc でやめる" />
+                    <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                        <Button Style="{StaticResource PrimaryButton}" Content="回答" Command="{Binding AnswerCommand}" Margin="0,0,12,0" />
+                        <Button Style="{StaticResource SecondaryButton}" Content="やめる" Command="{Binding QuitCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

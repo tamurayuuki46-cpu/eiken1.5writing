@@ -26,4 +26,24 @@ public class SpellingJudgeTests
     {
         Assert.False(SpellingJudge.IsCorrect(word, input));
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\r\n ")]
+    public void Blank_inputs_are_blank_after_normalizing(string? input)
+    {
+        Assert.True(SpellingJudge.IsBlank(input));
+    }
+
+    [Theory]
+    [InlineData("a")]
+    [InlineData(" a ")] // 前後の空白を除いても文字が残る
+    [InlineData("acc ommodate")]
+    public void Inputs_with_letters_are_not_blank(string input)
+    {
+        Assert.False(SpellingJudge.IsBlank(input));
+    }
 }

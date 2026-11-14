@@ -30,6 +30,33 @@ public class FlowSettingsTests
     }
 
     [Fact]
+    public void Home_question_count_choices_come_from_settings()
+    {
+        using var env = new FlowEnv();
+
+        Assert.Equal(DefaultSettings.Create().Practice.QuestionCountChoices, env.Start().As<HomeScreen>().QuestionCountChoices.ToArray());
+    }
+
+    [Fact]
+    public void Home_question_count_choices_follow_a_changed_settings_file_on_every_home()
+    {
+        using var env = new FlowEnv();
+        env.Dir.Write(SettingsRepository.FileName, """{ "settingsVersion": 1, "practice": { "questionCountChoices": [3, 7] } }""");
+        var flow = env.Start();
+        Assert.Equal([3, 7], flow.As<HomeScreen>().QuestionCountChoices.ToArray());
+
+        flow.StartPractice(Choices.Auto(weakOnly: true)); // 苦手が無いので0語でホームに戻る
+        var empty = flow.As<HomeScreen>();
+        Assert.NotEqual(SelectionEmptyReason.None, empty.EmptyReason);
+        Assert.Equal([3, 7], empty.QuestionCountChoices.ToArray());
+
+        flow.StartPractice(Choices.Auto(count: 3));
+        flow.AnswerAll(_ => true);
+        flow.GoHome();
+        Assert.Equal([3, 7], flow.As<HomeScreen>().QuestionCountChoices.ToArray());
+    }
+
+    [Fact]
     public void Saved_settings_become_defaults_and_survive_restart()
     {
         using var env = new FlowEnv();

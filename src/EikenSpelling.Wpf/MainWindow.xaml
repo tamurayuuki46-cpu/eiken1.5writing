@@ -1,0 +1,43 @@
+<Window x:Class="EikenSpelling.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:screens="clr-namespace:EikenSpelling.Presentation.Screens;assembly=EikenSpelling.Presentation"
+        xmlns:views="clr-namespace:EikenSpelling.Wpf.Views"
+        Title="EikenSpelling"
+        Background="{StaticResource Background}"
+        FontFamily="{StaticResource UiFont}"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        PreviewKeyDown="OnPreviewKeyDown"
+        Closing="OnClosing">
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type screens:HomeViewModel}"><views:HomeView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:QuestionViewModel}"><views:QuestionView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:FeedbackViewModel}"><views:FeedbackView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:ResultViewModel}"><views:ResultView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:ResumePromptViewModel}"><views:ResumePromptView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:BothCorruptViewModel}"><views:BothCorruptView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:FatalViewModel}"><views:FatalView /></DataTemplate>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- 通知の帯: 閉じるまで残す(R5) -->
+        <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Notices}" Margin="24,16,24,0" MaxWidth="760" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource InfoBand}" Margin="0,0,0,8">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="閉じる"
+                                    AutomationProperties.Name="通知を閉じる"
+                                    Tag="{Binding}" Click="OnDismissNotice" />
+                            <TextBlock Style="{StaticResource Body}" Text="{Binding}" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                        </DockPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- 今の画面。縦スクロールと主ボタンの固定は各 View が持つ -->
+        <ContentControl x:Name="ScreenHost" Content="{Binding Current}" Focusable="False" />
+    </DockPanel>
+</Window>
