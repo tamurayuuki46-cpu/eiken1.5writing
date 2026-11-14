@@ -7,31 +7,33 @@
 - NGSL 1.2 補足: 52
 - NAWL 1.2: 959
 - BSL 1.2: 1744
-- 統合後(重複をまとめた後): 5046
-- 収録: **4922**(Tier 1: 696 / Tier 2: 2107 / Tier 3: 2119)
-- 日本語モード可: 4922
+- 統合後(重複をまとめた後): 5046(同じ綴りの重複 517 件をまとめた)
+- 収録: **4924**(Tier 1: 696 / Tier 2: 2107 / Tier 3: 2121)
+- 日本語モード可: 4924
+- 意味が重なるので訳に頭文字と文字数を添えた語: 1918
+- 頭文字と文字数を添えても区別できない組: 0
 
 ## 検証エラー: 0
 
 ## 穴あきの作り方の内訳
 - DoubleConsonant: 639
 - Fallback: 19
-- IeEi: 72
+- IeEi: 76
 - Manual: 18
-- MiddleVowel: 3650
+- MiddleVowel: 3709
 - Short: 172
 - SilentLetter: 64
-- Suffix: 288
+- Suffix: 227
 
 ## 訳がまだ無い語: 0
 なし
 
 ## 同じ訳の語(日本語モード不可): 0 組
 
-## 除外: 124
+## 除外: 122
 - 1〜2文字(24): a, ad, as, at, be, by, do, ex, go, he, hi, i, if, in, it, no, of, on, or, pi, so, to, up, we
 - be・have・do(1): have
-- 代名詞(27): another, anyone, anything, either, everyone, everything, herself, himself, itself, myself, neither, nobody, none, nothing, ourselves, she, someone, something, themselves, they, what, whatever, which, who, whoever, you, yourself
+- 代名詞(25): another, anyone, anything, everyone, everything, herself, himself, itself, myself, nobody, none, nothing, ourselves, she, someone, something, themselves, they, what, whatever, which, who, whoever, you, yourself
 - 別綴り(advisor を残す)(1): adviser
 - 別綴り(among を残す)(1): amongst
 - 別綴り(while を残す)(1): whilst

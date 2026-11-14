@@ -6,10 +6,10 @@ public enum BlankRule
     /// <summary>3文字以下: 2文字目を隠す。</summary>
     Short,
 
-    /// <summary>二重子音(cc・mm・ss など)。最大2か所。</summary>
+    /// <summary>二重子音(cc・mm・ss など)。最大2か所。語尾の規則にも当たれば、上限の範囲でその母音も隠す。</summary>
     DoubleConsonant,
 
-    /// <summary>-able/-ible・-ance/-ence・-ancy/-ency の母音、-ant/-ent の母音(6文字以上)。</summary>
+    /// <summary>-able/-ible・-ance/-ence・-ancy/-ency の母音、-ant/-ent の母音(6文字以上。-ment は除く)。</summary>
     Suffix,
 
     /// <summary>ie / ei の2文字。</summary>
@@ -72,7 +72,10 @@ public static class BlankGenerator
 
         if (DoubleConsonants(w, limit) is { Length: > 0 } doubles)
         {
-            return (doubles, BlankRule.DoubleConsonant);
+            // 語尾(-able/-ible・-ance/-ence など)も間違えやすいので、上限の範囲で一緒に隠す(possible → po___ble)
+            return Suffix(w) is { } withSuffix && !doubles.Contains(withSuffix) && doubles.Length + 1 <= limit
+                ? ([.. doubles.Append(withSuffix).Order()], BlankRule.DoubleConsonant)
+                : (doubles, BlankRule.DoubleConsonant);
         }
 
         if (Suffix(w) is { } suffix)
@@ -131,7 +134,10 @@ public static class BlankGenerator
             return w.Length - 4;
         }
 
-        return SuffixesHideThirdFromEnd.Any(s => w.EndsWith(s, StringComparison.Ordinal)) ? w.Length - 3 : null;
+        // -ment の e は間違えにくい(-mant と書く人はほぼいない)ので -ent の規則にしない(argument・development)
+        return !w.EndsWith("ment", StringComparison.Ordinal) && SuffixesHideThirdFromEnd.Any(s => w.EndsWith(s, StringComparison.Ordinal))
+            ? w.Length - 3
+            : null;
     }
 
     private static int? IeEi(string w)

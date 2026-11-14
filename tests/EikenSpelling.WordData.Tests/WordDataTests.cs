@@ -126,16 +126,70 @@ public class WordDataTests
     }
 
     [Fact]
-    public void Words_sharing_a_translation_lose_japanese_mode_and_are_grouped()
+    public void Words_sharing_a_meaning_get_the_initial_and_length_as_a_hint_and_stay_in_japanese_mode()
     {
         var ja = AllJa();
         ja["analyse"] = "受け取る";
+        ja["invoice"] = "請求書、受け取る(書類を)"; // 括弧を外した意味単位で重なる
 
         var result = WordSetBuilder.Build(Sample(), 2809, Cur(ja), Options);
+        string Ja(string word) => result.Set.Words.Single(w => w.Word == word).Ja;
 
-        Assert.Equal([["analyse", "receive"]], result.SameTranslationGroups.Select(g => g.ToArray()));
-        Assert.False(result.Set.Words.Single(w => w.Word == "receive").JapaneseEligible);
-        Assert.True(result.Set.Words.Single(w => w.Word == "committee").JapaneseEligible);
+        Assert.Equal("受け取る(a・7文字)", Ja("analyse"));
+        Assert.Equal("受け取る(r・7文字)", Ja("receive"));
+        Assert.Equal("請求書、受け取る(書類を)(i・7文字)", Ja("invoice"));
+        Assert.Equal("委員会", Ja("committee")); // 重ならない語には付けない
+        Assert.Equal(3, result.HintedCount);
+        Assert.Empty(result.SameTranslationGroups);
+        Assert.All(result.Set.Words, w => Assert.True(w.JapaneseEligible));
+        Assert.Empty(result.Errors);
+    }
+
+    [Fact]
+    public void Words_still_ambiguous_with_the_same_initial_and_length_are_errors()
+    {
+        var merged = WordMerger.Merge([W("begin", 189), W("break", 300)], [], []);
+        var ja = new Dictionary<string, string> { ["begin"] = "始める", ["break"] = "壊す、始める(〜し)" };
+
+        var result = WordSetBuilder.Build(merged, 2809, Cur(ja), Options);
+
+        var group = Assert.Single(result.AmbiguousGroups);
+        Assert.Equal("始める", group.Meaning);
+        Assert.Equal(["begin", "break"], group.Words);
+        Assert.NotEmpty(result.Errors);
+    }
+
+    [Fact]
+    public void Curated_words_not_in_the_lists_are_errors_so_typos_are_not_ignored()
+    {
+        var result = WordSetBuilder.Build(Sample(), 2809, Cur(AllJa(), tier1: ["comittee"]), Options);
+
+        Assert.Equal(["comittee"], result.UnknownCuratedWords);
+        Assert.NotEmpty(result.Errors);
+    }
+
+    // ---- 書き込むかどうか ----
+
+    [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, false)] // 訳がそろっていない途中のデータで同梱のデータを置き換えない
+    [InlineData(false, true, false)]
+    [InlineData(true, true, false)]
+    public void Words_json_is_written_only_for_a_complete_error_free_build(bool allowMissing, bool reportOnly, bool expected)
+    {
+        var ok = WordSetBuilder.Build(Sample(), 2809, Cur(AllJa()), Options);
+
+        Assert.Equal(expected, new RunOptions(allowMissing, reportOnly).ShouldWriteWordsJson(ok));
+    }
+
+    [Fact]
+    public void Words_json_is_not_written_when_there_are_errors()
+    {
+        var ja = AllJa();
+        ja.Remove("invoice");
+        var failed = WordSetBuilder.Build(Sample(), 2809, Cur(ja), Options);
+
+        Assert.False(new RunOptions(false, false).ShouldWriteWordsJson(failed));
     }
 
     [Fact]
@@ -163,13 +217,6 @@ public class WordDataTests
         Assert.NotEmpty(result.Errors);
     }
 
-    [Fact]
-    public void Curated_words_not_in_the_lists_are_reported()
-    {
-        var result = WordSetBuilder.Build(Sample(), 2809, Cur(AllJa(), tier1: ["accommodate"]), Options);
-
-        Assert.Equal(["accommodate"], result.UnknownCuratedWords);
-    }
 
     // ---- 付加データの読込 ----
 
@@ -182,7 +229,13 @@ public class WordDataTests
         Assert.Throws<InvalidDataException>(() => Curation.ReadPairs([("a.tsv", "tax\t税\n"), ("b.tsv", "tax\t課税\n")]));
         Assert.Throws<InvalidDataException>(() => Curation.ReadPairs([("a.tsv", "tax 税\n")]));
         Assert.Throws<InvalidDataException>(() => Curation.ReadPairs([("a.tsv", "tax\t \n")]));
+        Assert.Throws<InvalidDataException>(() => Curation.ReadPairs([("a.tsv", "tax\t税\t余分\n")])); // 値の中のタブ(制御文字)
+        Assert.Throws<InvalidDataException>(() => Curation.ReadPairs([("a.tsv", "tax\t" + new string('税', Curation.MaxValueLength + 1) + "\n")]));
     }
+
+    [Fact]
+    public void Tier1_list_with_a_duplicate_word_is_an_error() =>
+        Assert.Throws<InvalidDataException>(() => Curation.ReadWords("# Tier 1\ntax\nlaw\nTax\n"));
 
     // ---- 出力 ----
 

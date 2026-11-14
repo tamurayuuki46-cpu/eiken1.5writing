@@ -56,7 +56,7 @@ internal static class SourceLists
                 continue;
             }
 
-            if (!int.TryParse(cells.ElementAtOrDefault(rankAt), out var rank))
+            if (!int.TryParse(cells.ElementAtOrDefault(rankAt), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var rank))
             {
                 throw new InvalidDataException($"「{word}」の順位が読めません。");
             }

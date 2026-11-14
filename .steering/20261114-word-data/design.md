@@ -12,7 +12,7 @@
 ## 2. 置き場所
 | 場所 | 内容 |
 |---|---|
-| `data/sources/NGSL_1.2_stats.csv` ほか | 公式 CSV(取得したまま。改変しない) |
+| `data/sources/NGSL_12_stats.csv` ほか | 公式 CSV(取得したまま。改変しない) |
 | `data/sources/SOURCES.md` | 版・URL・取得日・ライセンス・作者 |
 | `data/curation/ja/*.tsv` | 日本語訳(`word<TAB>訳`)。Claude が自作。数百語ずつ |
 | `data/curation/tier1.txt` | Tier 1 の語(1行1語) |
@@ -46,8 +46,8 @@
 - 同じ綴りは1件に。sources は NGSL → NAWL → BSL の順で重複なし
 
 ### 4.2 頻度順位
-- NGSL の SFI Rank をそのまま使う。NGSL に無い語は「NGSL の最大順位 + そのリストの順位」(NAWL → BSL の順)。元の順位は report に残す
-- NAWL の順位のファイルは公式サイトでは別ホストへのリンク。取れなければ研究用の lemma CSV の並び順を使い、その旨を SOURCES.md に書く
+- NGSL の SFI Rank をそのまま使う。NGSL に無く BSL にある語は「NGSL の最大順位 + BSL の順位」
+- NAWL だけ・NGSL 補足だけの語は順位なし(null。Tier の中で最後・同順位は乱数)。NAWL の順位のファイルは別ホストで取得しておらず、研究用 CSV はアルファベット順なので順位に使わない(2026-11-14 改訂。PR 前レビュー)
 
 ### 4.3 穴あきの自動生成(BlankGenerator)
 - 入力: 綴り。出力: 穴あき表示(`_` で隠す)と、使ったルール名

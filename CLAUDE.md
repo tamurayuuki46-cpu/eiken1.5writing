@@ -31,7 +31,7 @@ src/EikenSpelling.Core/   # 学習ロジック(Windows 非依存)
 src/EikenSpelling.Persistence/  # 保存・読込・復旧(Windows 非依存)
 src/EikenSpelling.Flow/   # 画面の手前の進行役: 起動・練習・保存失敗・破損時の画面の状態(Windows 非依存)
 src/EikenSpelling.Presentation/  # ViewModel(Windows 非依存。Flow の画面の状態を写す・受け付け開始のゲート・ログ・起動引数)
-src/EikenSpelling.Wpf/    # 画面(XAML)・テーマ・起動の合成・二重起動の防止(Windows 専用)。仮の単語データ Data/words.json
+src/EikenSpelling.Wpf/    # 画面(XAML)・テーマ・起動の合成・二重起動の防止(Windows 専用)。単語データ Data/words.json(道具で生成。手で直さない)
 tests/EikenSpelling.Core.Tests/  # xUnit
 tests/EikenSpelling.Persistence.Tests/  # xUnit(一時フォルダ)
 tests/EikenSpelling.Flow.Tests/  # xUnit(一時フォルダの本物のファイルで通しの流れ)

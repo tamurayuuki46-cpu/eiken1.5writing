@@ -47,10 +47,10 @@ PR と main への push では、GitHub Actions(`.github/workflows/ci.yml`)が L
 - [x] 出題する単語の選択(苦手度を含む)
 - [x] 保存・復旧(progress.json / settings.json。セッションの保存は未着手)
 - [ ] WPF 画面・音声
-- [ ] 単語データ(約5,000語)の取り込み
+- [x] 単語データ(約5,000語)の取り込み(4,924語。2026-11-14)
 
 ## ライセンス
 
-- 単語データ(`src/EikenSpelling.Wpf/Data/words.json`・`data/curation/`):New General Service List 1.2・New Academic Word List 1.2(Browne, C., Culligan, B., and Phillips, J.)、Business Service List 1.2(Browne, C. and Culligan, B.)をもとに作った改変物。日本語訳はこのプロジェクトの自作。**CC BY-SA 4.0** で公開する。詳しくは `data/LICENSE-DATA.md`、取得したリストは `data/sources/SOURCES.md`
-- 単語データの作り直し: `dotnet run --project tools/EikenSpelling.WordData -- .`(検証レポートは `data/report.md`)
+- 単語データ(`src/EikenSpelling.Wpf/Data/words.json`・`data/curation/`・`data/report.md`):New General Service List 1.2・New Academic Word List 1.2(Browne, C., Culligan, B., and Phillips, J.)、Business Service List 1.2(Browne, C. and Culligan, B.)をもとに作った改変物。日本語訳はこのプロジェクトの自作。**CC BY-SA 4.0** で公開する。詳しくは `data/LICENSE-DATA.md`、取得したリストは `data/sources/SOURCES.md`
+- 単語データの作り直し: `dotnet run --project tools/EikenSpelling.WordData -- .`(検証レポートは `data/report.md`。訳を作っている途中は `--allow-missing --report-only` で words.json を書かずにレポートだけ)
 - アプリのコード:未定

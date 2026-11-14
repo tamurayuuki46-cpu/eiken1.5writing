@@ -13,6 +13,9 @@ internal sealed record Curation(
     IReadOnlyDictionary<string, string> Excluded,
     IReadOnlyDictionary<string, string> ManualBlanks)
 {
+    /// <summary>付加データの値(訳・穴あきなど)の最大文字数。画面に収まる長さに抑え、取り違えた行を見つけるため。</summary>
+    public const int MaxValueLength = 40;
+
     public static readonly Curation Empty = new(
         new Dictionary<string, string>(), new HashSet<string>(), new Dictionary<string, string>(), new Dictionary<string, string>());
 
@@ -45,6 +48,11 @@ internal sealed record Curation(
                     throw new InvalidDataException($"{name} の {lineNo} 行目(「{word}」)の値が空です。");
                 }
 
+                if (value.Any(char.IsControl) || value.Length > MaxValueLength)
+                {
+                    throw new InvalidDataException($"{name} の {lineNo} 行目(「{word}」)の値に制御文字(タブなど)があるか、{MaxValueLength} 文字を超えています。");
+                }
+
                 if (!map.TryAdd(word, value))
                 {
                     throw new InvalidDataException($"{name} の {lineNo} 行目: 「{word}」が2回あります。");
@@ -55,11 +63,23 @@ internal sealed record Curation(
         return map;
     }
 
-    public static HashSet<string> ReadWords(string text) =>
-        [.. text.TrimStart('﻿').Split('\n')
+    /// <summary>1行1語を読む。同じ語が2回あれば誤り(書き間違いの見落としを防ぐ)。</summary>
+    public static HashSet<string> ReadWords(string text)
+    {
+        var words = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var word in text.TrimStart('﻿').Split('\n')
             .Select(l => l.TrimEnd('\r').Trim())
             .Where(l => l.Length > 0 && !l.StartsWith('#'))
-            .Select(l => l.ToLowerInvariant())];
+            .Select(l => l.ToLowerInvariant()))
+        {
+            if (!words.Add(word))
+            {
+                throw new InvalidDataException($"「{word}」が2回あります。");
+            }
+        }
+
+        return words;
+    }
 
     /// <summary>data/curation/ を読む。無いファイルは空として扱う(作業の途中でも生成できるよう)。</summary>
     public static Curation Load(string curationDir)

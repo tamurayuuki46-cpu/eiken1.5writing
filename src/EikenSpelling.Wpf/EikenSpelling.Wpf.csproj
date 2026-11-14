@@ -20,6 +20,8 @@
   <!-- 仮の単語データ(design 4.4)。exe と同じフォルダの Data\ に置く -->
   <ItemGroup>
     <Content Include="Data\words.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 単語データは CC BY-SA 4.0。配布物に帰属表示とライセンスを必ず含める(data/LICENSE-DATA.md) -->
+    <Content Include="..\..\data\LICENSE-DATA.md" Link="Data\LICENSE-DATA.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

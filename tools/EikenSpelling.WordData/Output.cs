@@ -12,6 +12,10 @@ namespace EikenSpelling.WordData;
 /// <summary>words.json と検証レポートを書く。words.json は1語1行(差分を読みやすくするため)。</summary>
 internal static class Output
 {
+    /// <summary>Tier 1 の語数の目安(仕様 v1.1 14.3)。外れたらレポートで注意する。</summary>
+    public const int Tier1Min = 300;
+    public const int Tier1Max = 800;
+
     private static readonly JsonSerializerOptions EntryOptions = new(WordSetLoader.JsonOptions)
     {
         WriteIndented = false,
@@ -51,9 +55,16 @@ internal static class Output
             Line($"- {source}: {count}");
         }
 
-        Line($"- 統合後(重複をまとめた後): {mergedCount}");
+        Line($"- 統合後(重複をまとめた後): {mergedCount}(同じ綴りの重複 {sourceCounts.Values.Sum() - mergedCount - r.Rejected.Count} 件をまとめた)");
         Line($"- 収録: **{r.Set.Words.Count}**(Tier 1: {CountTier(r, 1)} / Tier 2: {CountTier(r, 2)} / Tier 3: {CountTier(r, 3)})");
+        if (CountTier(r, 1) is var tier1 && (tier1 < Tier1Min || tier1 > Tier1Max))
+        {
+            Line($"- **注意**: Tier 1 が目安({Tier1Min}〜{Tier1Max} 語。仕様 v1.1 14.3)の範囲外");
+        }
+
         Line($"- 日本語モード可: {r.Set.Words.Count(w => w.JapaneseEligible)}");
+        Line($"- 意味が重なるので訳に頭文字と文字数を添えた語: {r.HintedCount}");
+        Line($"- 頭文字と文字数を添えても区別できない組: {r.AmbiguousGroups.Count}");
         Line();
         Line($"## 検証エラー: {r.Errors.Count}");
         foreach (var e in r.Errors.Take(50))

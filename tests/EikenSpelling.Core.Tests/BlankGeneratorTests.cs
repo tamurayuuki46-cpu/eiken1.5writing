@@ -9,6 +9,15 @@ public class BlankGeneratorTests
     [InlineData("committee", "co__i__ee", BlankRule.DoubleConsonant)] // 二重子音は2か所まで
     [InlineData("necessary", "nece__ary", BlankRule.DoubleConsonant)]
     [InlineData("mallett", "ma__ett", BlankRule.DoubleConsonant)] // 2か所目を隠すと半分(3文字)を超えるので1か所だけ
+    [InlineData("possible", "po___ble", BlankRule.DoubleConsonant)] // 二重子音に加えて -ible の母音も隠す(上限の範囲で)
+    [InlineData("accessible", "a__e___ble", BlankRule.DoubleConsonant)]
+    [InlineData("ally", "a__y", BlankRule.DoubleConsonant)] // 4文字の二重子音
+    [InlineData("class", "cla__", BlankRule.DoubleConsonant)] // 末尾の二重子音
+    [InlineData("mississippi", "mi__i__ippi", BlankRule.DoubleConsonant)] // 3か所あっても2か所まで
+    [InlineData("argument", "arg_m_nt", BlankRule.MiddleVowel)] // -ment は -ent の規則にしない
+    [InlineData("development", "dev_l_pment", BlankRule.MiddleVowel)]
+    [InlineData("egg", "e_g", BlankRule.Short)]
+    [InlineData("movie", "mov__", BlankRule.IeEi)] // ie が末尾
     [InlineData("comfortable", "comfort_ble", BlankRule.Suffix)] // -able
     [InlineData("sensible", "sens_ble", BlankRule.Suffix)] // -ible
     [InlineData("performance", "perform_nce", BlankRule.Suffix)] // -ance
@@ -81,6 +90,7 @@ public class BlankGeneratorTests
     [InlineData("well-known")]
     [InlineData("o'clock")]
     [InlineData("ice cream")]
+    [InlineData("café")] // 英字以外(アクセント付き)
     public void Words_with_non_letters_or_empty_are_rejected(string word) =>
         Assert.Throws<ArgumentException>(() => BlankGenerator.Generate(word));
 }
