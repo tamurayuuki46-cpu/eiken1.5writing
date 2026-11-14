@@ -38,6 +38,9 @@
 - settings.json が壊れている・値が不正 → 初期値で動かす(ファイルは書かない)。その後の保存では壊れたファイルを退避してから保存
 - 呼び出し順: 設定の Load → 学習記録の Load。保存先フォルダは絶対パスだけ
 - 二重起動は WPF で防ぐ(名前付き Mutex。2つ目は既存の画面を前に出して終了)。Persistence はアプリが1つだけ動いている前提
+  - 限界(2026-11-14): Mutex は `Local\`(ログオンセッションごと)なので、ユーザーの切り替えで別のセッションから同じ保存先を開くと防げない / 同じセッションのほかのプロセスが先に同じ名前を作ると起動できない
+- 起動引数 `--data-dir <絶対パス>` で保存先を差し替えられる(実機の破損・ロック確認を本番の記録と分けるため)。値なし・2回は FolderInvalid。UNC パスの扱いは未決(積み残し)
+- ログ: `%LOCALAPPDATA%\EikenSpelling\logs\app-yyyyMMdd.log`(保存先とは別)。30 日より古いものは起動時に消す。例外は型名・HResult・メソッド名だけ
 - 限界: Windows の File.Replace が途中で止まると、最後の1問分が orphan の tmp にだけ残ることがある
 
 ## セッション(2026-11-13)
@@ -73,6 +76,16 @@
 - UI は **WPF**(仕様 v1.0 15.1 どおり。音声は System.Speech)。ユーザーが WPF と Avalonia を比べて決定。v0.1 では Avalonia・MAUI に移らない(v1.0 Overengineering)
 - 画面のプロジェクト `EikenSpelling.Wpf` だけを Windows 専用にする。Core・Persistence・Flow は net10.0 のまま(Linux でもテストする)
 - 比較の記録: `.steering/20261113-windows-handoff/handoff.md` 4章
+- 再確認(2026-11-14、新しい開発工程の第1工程): ユーザーが WPF の決定を再確認。詳しい比較は `.steering/20261114-ui-tech-selection/comparison.md`
+  - 条件: ViewModel は net10.0 の別プロジェクトに置き Windows 専用アセンブリを参照しない / 音声は差し替え口(インターフェース)の後ろに置く
+  - Android 版の時期は未定。必要になった時点で技術選定をやり直す
+  - 骨組みのプラン `.steering/20261114-wpf-shell/` は AI の暫定案。第2〜4工程(UX・UI 設計・設計レビュー)の承認後に見直す
+- 画面の設計(2026-11-14、ユーザー承認): UX 設計 `.steering/20261114-ux-design/ux-design.md`、UI 設計(採用案 A+B)`.steering/20261114-ui-design/ui-design.md`、設計レビュー `.steering/20261114-design-review/review.md`
+  - 差分の文章の正本は Core の `SpellingDiffService.Describe`。表示側で作り直さない
+  - 空欄・空白だけの入力は画面から送らない(誤答にしない)。「空か」の判定は Core に1つだけ置く
+  - 想定外の例外のあとは、伏せた文言を出して終了する(保存も画面の続行もしない)
+  - 窓は既定 1000×680・最小 800×560。どちらも画面の作業領域で頭打ちにし、足りなければ縦スクロール
+  - 判定画面の「あなたの入力」は画面にだけ出す(苦手一覧の最後の誤答と同じ扱い)。ログ・例外・ToString・スクリーンリーダー用の名前には出さない
 
 ## 仕様からの差分
 - 保存処理は v1.2 4章の図(`EikenSpelling.Wpf/Persistence`)ではなく、独立した `EikenSpelling.Persistence`(net10.0)に置く(2026-11-13)。本物のファイルで Linux と Windows の両方でテストするため。仕様書は直していない
@@ -81,7 +94,9 @@
 ## 層の依存
 - Core の中は `Application → Domain / Settings → Models`。苦手度・克服の判定のため **Domain → Settings の参照は認める**(2026-11-13、v1.2 4章)
 - Settings は Domain を参照しない
-- プロジェクトの依存は `Wpf → Flow → Persistence → Core`(`Flow → Core`・`Wpf → Core` も可)
+- プロジェクトの依存は `Wpf → Presentation → Flow → Persistence → Core`(`Presentation → Core`・`Flow → Core`・`Wpf → Core` も可)(2026-11-14、Presentation を追加)
+- Presentation(ViewModel、net10.0)は Windows 専用のアセンブリ(WindowsBase・PresentationCore・PresentationFramework)を参照しない。`System.Windows.Input.ICommand` は System.ObjectModel にあるので使ってよい
+- 画面の文言の持ち主: 判断を伴う文言(保存失敗・通知・再開できない理由)は Flow、差分の文章は Core の Describe、値の言い換え(0語の理由・記録の変化・モード名)だけ Presentation の ScreenText
 
 ## 固定ルール(設定にしない)
 - 正誤判定:大文字・小文字を区別しない、前後の空白を無視、途中の空白は無視しない

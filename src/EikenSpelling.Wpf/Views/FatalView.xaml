@@ -1,0 +1,15 @@
+<UserControl x:Class="EikenSpelling.Wpf.Views.FatalView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+        <StackPanel MaxWidth="600" Margin="24,64,24,24" HorizontalAlignment="Center">
+            <TextBlock Style="{StaticResource Heading}" FontSize="24" Text="続けられません" HorizontalAlignment="Center" Margin="0,0,0,16" />
+            <TextBlock Style="{StaticResource Body}" TextAlignment="Center" Margin="0,0,0,24" Text="{Binding Reason}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="ReloadButton" Style="{StaticResource PrimaryButton}" Content="再読込" Margin="0,0,12,0"
+                        Command="{Binding ReloadCommand}" Visibility="{Binding CanReload, Converter={StaticResource BoolToVisible}}" />
+                <Button x:Name="ExitButton" Style="{StaticResource SecondaryButton}" Content="終了" Command="{Binding ExitCommand}" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

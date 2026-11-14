@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- 画面(View)と合成の起点。Windows 専用はこのプロジェクトだけ。
+       EnableWindowsTargeting: Linux(CI の ubuntu-latest・クラウド)でもビルドだけは通すため。実行は Windows のみ -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>EikenSpelling</AssemblyName>
+    <RootNamespace>EikenSpelling.Wpf</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EikenSpelling.Presentation\EikenSpelling.Presentation.csproj" />
+  </ItemGroup>
+
+  <!-- 仮の単語データ(design 4.4)。exe と同じフォルダの Data\ に置く -->
+  <ItemGroup>
+    <Content Include="Data\words.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

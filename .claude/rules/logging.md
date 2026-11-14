@@ -1,8 +1,10 @@
 ---
 paths:
   - "src/EikenSpelling.Wpf/**"
+  - "src/EikenSpelling.Presentation/**"
 ---
-<!-- Core はログを出さず、結果(成功・失敗・警告)を値で返す。ログは Wpf 側だけで扱う(運用案) -->
+<!-- Core・Flow はログを出さず、結果(成功・失敗・警告)と Diagnostic を値で返す。ログは Presentation(FileLog)と Wpf で扱う -->
+<!-- 書かないもの(必ず守る): ファイルのパス、誤答入力、画面の状態・ViewModel の丸ごと、DiffDisplay の文章、SpellingDiff(ToString に入力の文字が入る)、例外の Message とスタックトレース(型名・HResult・メソッド名だけ) -->
 
 # ログルール
 

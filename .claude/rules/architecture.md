@@ -15,9 +15,12 @@ paths:
 - ファイルの保存・読込・復旧は `src/EikenSpelling.Persistence/`(net10.0、Windows 非依存)に置く。画面・音声は `src/EikenSpelling.Wpf/`。
   (仕様 v1.2 4章の図では Wpf/Persistence。テストを Linux でも動かすため分けた。DECISIONS.md「仕様からの差分」)
 - 起動・練習の進行・保存失敗と破損時の画面の状態は `src/EikenSpelling.Flow/`(net10.0、Windows 非依存)に置く。WPF は Flow の画面の状態を表示し、操作を渡すだけにする。
+- Flow の画面の状態を表示用に写す ViewModel は `src/EikenSpelling.Presentation/`(net10.0)に置く。Windows 専用のアセンブリ(WindowsBase・PresentationCore・PresentationFramework)は参照しない(`ICommand` は可)。行き先の判断・学習ロジックは書かない。
+- 画面の文言: 判断を伴う文言は Flow、差分の文章は Core の `SpellingDiffService.Describe`、値の言い換えだけ Presentation の `ScreenText` に置く。
+- 画面の ViewModel のコマンドは `ScreenViewModel.Command` で作る(受け付け開始のゲートと古い画面の確認を必ず通すため)。
 
 ## 依存
-- 依存の向き: `Wpf → Flow → Persistence → Core`(`Wpf → Core`・`Flow → Core` も可。逆向きは禁止)、Core の中は `Application → Domain / Settings → Models`。逆向きの参照は禁止。
+- 依存の向き: `Wpf → Presentation → Flow → Persistence → Core`(`Presentation → Core`・`Wpf → Core`・`Flow → Core` も可。逆向きは禁止)、Core の中は `Application → Domain / Settings → Models`。逆向きの参照は禁止。
 - Domain → Settings の参照は認める(苦手度・克服の判定が設定値を使うため。v1.2 4章、DECISIONS.md「層の依存」)。Settings → Domain は禁止。
 - Core では次を使わない: `System.Windows.*`、ファイルの読み書き、`DateTime.Now` / `DateTime.Today`、`%APPDATA%` などの環境依存。
   時刻は `TimeProvider`、データは引数で受け取る。

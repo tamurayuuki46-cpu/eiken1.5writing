@@ -1,0 +1,137 @@
+<UserControl x:Class="EikenSpelling.Wpf.Views.FeedbackView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <!-- 正しいスペル: 誤りの文字は地の色と下線で強調 -->
+        <DataTemplate x:Key="CorrectLetter">
+            <Border x:Name="Box" BorderThickness="0,0,0,4" Padding="1,0">
+                <TextBlock x:Name="Ch" Text="{Binding Character}" />
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Marked}" Value="True">
+                    <Setter TargetName="Box" Property="Background" Value="{StaticResource MistakeSoft}" />
+                    <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Mistake}" />
+                    <Setter TargetName="Ch" Property="Foreground" Value="{StaticResource MistakeText}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <!-- あなたの入力: 余分な文字は取り消し線と地の色 -->
+        <DataTemplate x:Key="InputLetter">
+            <TextBlock x:Name="Ch" Text="{Binding Character}" />
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Marked}" Value="True">
+                    <Setter TargetName="Ch" Property="Background" Value="{StaticResource MistakeSoft}" />
+                    <Setter TargetName="Ch" Property="Foreground" Value="{StaticResource MistakeText}" />
+                    <Setter TargetName="Ch" Property="TextDecorations" Value="Strikethrough" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <ItemsPanelTemplate x:Key="Row">
+            <StackPanel Orientation="Horizontal" />
+        </ItemsPanelTemplate>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- 上: n / 合計 と保存の状態 -->
+        <DockPanel DockPanel.Dock="Top" Margin="32,16,32,0" MaxWidth="760">
+            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Body}" FontSize="14" Foreground="{StaticResource Saved}"
+                       Visibility="{Binding Saved, Converter={StaticResource BoolToVisible}}" Text="✓ 保存しました" />
+            <TextBlock Style="{StaticResource Sub}" FontSize="14">
+                <Run Text="{Binding Number, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding Total, Mode=OneWay}" />
+            </TextBlock>
+        </DockPanel>
+
+        <!-- 保存失敗の警告の帯 -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource WarnBand}" Margin="32,12,32,0" MaxWidth="760"
+                Visibility="{Binding SaveFailure, Converter={StaticResource NotNullToVisible}}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource Body}" FontWeight="Bold" Foreground="{StaticResource DangerText}" Text="⚠ 保存できませんでした" />
+                <TextBlock Style="{StaticResource Body}" FontSize="14" Foreground="{StaticResource DangerText}" Text="{Binding SaveFailure}" />
+            </StackPanel>
+        </Border>
+
+        <!-- 下: 主ボタン(固定) -->
+        <StackPanel DockPanel.Dock="Bottom" Margin="24,8,24,24" HorizontalAlignment="Center">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="RetrySaveButton" Style="{StaticResource PrimaryButton}" Content="もう一度保存" Margin="0,0,12,0"
+                        Command="{Binding RetrySaveCommand}" Visibility="{Binding Saved, Converter={StaticResource FalseToVisible}}" />
+                <Button x:Name="NextButton" Style="{StaticResource PrimaryButton}" MinWidth="240" MinHeight="56" FontSize="18"
+                        Content="{Binding NextLabel}" Command="{Binding NextCommand}"
+                        Visibility="{Binding Saved, Converter={StaticResource BoolToVisible}}" />
+                <Button Style="{StaticResource SecondaryButton}" Content="次へ(保存後に押せます)" IsEnabled="False"
+                        Visibility="{Binding Saved, Converter={StaticResource FalseToVisible}}" />
+            </StackPanel>
+            <TextBlock Style="{StaticResource Sub}" HorizontalAlignment="Center" Margin="0,8,0,0" Text="Enter で押せます" />
+        </StackPanel>
+
+        <!-- 中央: 正誤・正しいスペル・差分 -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+            <StackPanel MaxWidth="760" Margin="24,16,24,8" HorizontalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="22" FontWeight="Bold" Margin="0,8,0,16"
+                           AutomationProperties.LiveSetting="Assertive">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Body}">
+                            <Setter Property="Foreground" Value="{StaticResource Mistake}" />
+                            <Setter Property="Text" Value="{Binding ResultText, StringFormat=✕ {0}}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCorrect}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                    <Setter Property="Text" Value="{Binding ResultText, StringFormat=✓ {0}}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ItemsControl ItemsSource="{Binding Diff.CorrectLetters}" ItemTemplate="{StaticResource CorrectLetter}" ItemsPanel="{StaticResource Row}"
+                              HorizontalAlignment="Center" Focusable="False"
+                              FontFamily="{StaticResource WordFont}" FontWeight="Bold" Foreground="{StaticResource Text}"
+                              FontSize="{Binding CorrectWord.Length, Converter={StaticResource WordFontSize}}"
+                              AutomationProperties.Name="正しいスペル" />
+
+                <ItemsControl ItemsSource="{Binding Diff.Messages}" HorizontalAlignment="Center" Margin="0,16,0,0" Focusable="False"
+                              AutomationProperties.Name="間違いの説明">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Style="{StaticResource Body}" FontSize="20" HorizontalAlignment="Center" Text="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Style="{StaticResource Sub}" FontSize="15" HorizontalAlignment="Center" Text="{Binding Diff.MoreText}"
+                           Visibility="{Binding Diff.MoreText, Converter={StaticResource NotNullToVisible}}" />
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0"
+                            Visibility="{Binding IsCorrect, Converter={StaticResource FalseToVisible}}">
+                    <TextBlock Style="{StaticResource Sub}" FontSize="15" Text="あなたの入力: " VerticalAlignment="Center" />
+                    <ItemsControl ItemsSource="{Binding Diff.InputLetters}" ItemTemplate="{StaticResource InputLetter}" ItemsPanel="{StaticResource Row}"
+                                  FontFamily="{StaticResource WordFont}" FontSize="18" Foreground="{StaticResource Text}" Focusable="False"
+                                  AutomationProperties.Name="あなたの入力" />
+                </StackPanel>
+
+                <Border Margin="0,20,0,0" CornerRadius="10" Padding="16,10" HorizontalAlignment="Center"
+                        Visibility="{Binding Changes, Converter={StaticResource NotNullToVisible}}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource MistakeSofter}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCorrect}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Sub}" Text="記録の変化" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <ItemsControl ItemsSource="{Binding Changes}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Style="{StaticResource Body}" FontWeight="Bold" Text="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

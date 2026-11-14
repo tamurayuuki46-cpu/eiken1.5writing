@@ -29,6 +29,9 @@ public sealed record HomeScreen(
 {
     /// <summary>練習設定の初期値(保存済みの基本設定)。WPF の練習設定画面はこれを最初に選んでおく。</summary>
     public PracticeChoice Defaults { get; init; } = PracticeChoiceApplier.Defaults;
+
+    /// <summary>問題数の選択肢(今の設定の QuestionCountChoices)。画面はこれを選択欄に出す(正本を LearningSettings の1つに保つ)。</summary>
+    public ImmutableArray<int> QuestionCountChoices { get; init; } = [];
 }
 
 /// <summary>

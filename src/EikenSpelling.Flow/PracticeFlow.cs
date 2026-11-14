@@ -250,7 +250,11 @@ public sealed partial class PracticeFlow
     }
 
     private HomeScreen Home(SelectionEmptyReason emptyReason = SelectionEmptyReason.None, string? message = null) =>
-        FlowViews.Home(_wordSet, _document.Progress, _options.Time.GetUtcNow(), emptyReason, message) with { Defaults = _editor.Defaults };
+        FlowViews.Home(_wordSet, _document.Progress, _options.Time.GetUtcNow(), emptyReason, message) with
+        {
+            Defaults = _editor.Defaults,
+            QuestionCountChoices = [.. _editor.Current.Practice.QuestionCountChoices],
+        };
 
     private WeakListScreen WeakList(WeakListSort sort, bool weakOnly) =>
         FlowViews.WeakList(_wordSet!, _document.Progress, _editor.Current, _options.Time.GetUtcNow(), sort, weakOnly) with { Defaults = _editor.Defaults };

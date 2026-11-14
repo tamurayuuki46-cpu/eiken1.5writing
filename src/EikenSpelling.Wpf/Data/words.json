@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "wordSetVersion": "sample-0.1",
+  "sourceVersion": "NGSL-1.2_NAWL-1.2_checked-2026-11-14",
+  "words": [
+    { "id": "necessary", "word": "necessary", "ja": "必要な", "blanks": "ne_e__ary", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 676 },
+    { "id": "environment", "word": "environment", "ja": "環境", "blanks": "envir__ment", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 712 },
+    { "id": "government", "word": "government", "ja": "政府", "blanks": "gover_ment", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 216 },
+    { "id": "recommend", "word": "recommend", "ja": "勧める、推薦する", "blanks": "re_o__end", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 1007 },
+    { "id": "definitely", "word": "definitely", "ja": "間違いなく、確かに", "blanks": "def_n_tely", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 1557 },
+    { "id": "separate", "word": "separate", "ja": "分ける、別々の", "blanks": "sep_r_te", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 890 },
+    { "id": "embarrass", "word": "embarrass", "ja": "恥ずかしい思いをさせる", "blanks": "emba__a__", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 2464 },
+    { "id": "privilege", "word": "privilege", "ja": "特権", "blanks": "priv_l_ge", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 2437 },
+    { "id": "maintenance", "word": "maintenance", "ja": "維持、保守", "blanks": "maint_n_nce", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 2548 },
+    { "id": "receive", "word": "receive", "ja": "受け取る", "blanks": "rec__ve", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 396 },
+    { "id": "believe", "word": "believe", "ja": "信じる", "blanks": "bel__ve", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 225 },
+    { "id": "committee", "word": "committee", "ja": "委員会", "blanks": "co__i__ee", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 1038 },
+    { "id": "opportunity", "word": "opportunity", "ja": "機会", "blanks": "o__ortunity", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 520 },
+    { "id": "possession", "word": "possession", "ja": "所有、所有物", "blanks": "po__e__ion", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 2541 },
+    { "id": "tomorrow", "word": "tomorrow", "ja": "明日", "blanks": "tom_r__w", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 726 },
+    { "id": "independent", "word": "independent", "ja": "独立した", "blanks": "indep_nd_nt", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 1006 },
+    { "id": "immediately", "word": "immediately", "ja": "すぐに", "blanks": "i__ediately", "blankSource": "Manual", "sources": ["NGSL"], "frequencyRank": 988 },
+    { "id": "occurrence", "word": "occurrence", "ja": "出来事、発生", "blanks": "o__u__ence", "blankSource": "Manual", "sources": ["NAWL"] }
+  ]
+}

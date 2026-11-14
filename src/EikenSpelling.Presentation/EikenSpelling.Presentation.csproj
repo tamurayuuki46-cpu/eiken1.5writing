@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- 画面の ViewModel(net10.0、Windows 非依存)。WPF の型は参照しない(ICommand は System.ObjectModel にあり使ってよい)。
+       依存: Wpf → Presentation → Flow → Persistence → Core(.claude/rules/architecture.md) -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\EikenSpelling.Core\EikenSpelling.Core.csproj" />
+    <ProjectReference Include="..\EikenSpelling.Flow\EikenSpelling.Flow.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EikenSpelling.Presentation.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -6,7 +6,7 @@
 - 利用者: 英検準1級を受ける学習者本人(1人・1台の PC)
 - Core Value: 間違えたスペルを差分で示し、苦手語を克服するまで繰り返し出題する
 - やらないこと(v0.1): 手動バックアップ・JSON エクスポート/インポート・PC 移行(仕様 v1.0 13.6)、スマホ版の画面
-- 現在のフェーズ: 実装。Core・保存(Persistence)・進行役(Flow)まで完了。次は WPF 画面
+- 現在のフェーズ: 実装。Core・保存(Persistence)・進行役(Flow)まで完了。WPF の骨組み(ホーム → 練習 → 判定 → 結果、日本語・穴あき)を実装中(`.steering/20261114-wpf-shell/`)。UI の工程は UI 技術選定 → UX 設計 → UI 設計 → 設計レビュー → 実装 → 検証の順(各工程の資料は `.steering/20261114-*`)
 
 ## 2. 技術スタック
 - 言語・フレームワーク: C# / .NET 10 / WPF(画面のみ)
@@ -30,10 +30,12 @@ src/EikenSpelling.Core/   # 学習ロジック(Windows 非依存)
   Models/ Domain/ Application/ Settings/   # 層別(.claude/rules/architecture.md)
 src/EikenSpelling.Persistence/  # 保存・読込・復旧(Windows 非依存)
 src/EikenSpelling.Flow/   # 画面の手前の進行役: 起動・練習・保存失敗・破損時の画面の状態(Windows 非依存)
-src/EikenSpelling.Wpf/    # 画面・音声(未作成)
+src/EikenSpelling.Presentation/  # ViewModel(Windows 非依存。Flow の画面の状態を写す・受け付け開始のゲート・ログ・起動引数)
+src/EikenSpelling.Wpf/    # 画面(XAML)・テーマ・起動の合成・二重起動の防止(Windows 専用)。仮の単語データ Data/words.json
 tests/EikenSpelling.Core.Tests/  # xUnit
 tests/EikenSpelling.Persistence.Tests/  # xUnit(一時フォルダ)
 tests/EikenSpelling.Flow.Tests/  # xUnit(一時フォルダの本物のファイルで通しの流れ)
+tests/EikenSpelling.Presentation.Tests/  # xUnit(本物の Flow と手で進める時計で ViewModel を確かめる)
 docs/spec/                # 仕様書(正本)v1.0〜v1.2
 docs/DECISIONS.md         # コードに入っている決定の早見表
 .steering/_template/      # タスク文書の雛形。タスクごとに .steering/[日付]-[タスク]/ へコピー
@@ -94,6 +96,9 @@ prompts/8steps.md         # 8ステップの依頼文
 - 2026-11-13: 足したテストが修正前のコードでも通ったら、上限や件数で問題が表に出ていないことを疑う(再確認の重複は10問では上限1で隠れ、20問で Red になった)。修正前のコードに一時的に戻して Red を確かめる。
 - 2026-11-13: 再開できるかの判定は「列に今ある問題」だけでなく「これから足されうる問題(再練習)」まで見る。列に足される前の分を見落とすと、レビューで2往復かかった。
 - 2026-11-13: ImmutableDictionary の列挙順はキーのハッシュで決まり、入れる順を変えても変わらない。並びの決め手(同点は ID 順など)は、同点の要素を多数並べて期待の順と比べて確かめる。
+- 2026-11-14: 守りを二重にした箇所(コマンドの IsActive と ShellViewModel の「今の画面か」)は、片方を壊しても通るテストになりやすい。内側の守りは直接呼んで確かめる。
+- 2026-11-14: WPF(net10.0-windows)の ImplicitUsings には System.IO が入らない。File・Path を使うファイルは `using System.IO;` を書く。
+- 2026-11-14: XAML の誤りは実行するまで分からない。画面外に窓を置いて全画面を通し、PresentationTraceSources で結び付けの誤りを数えると、デスクトップ操作なしで確かめられる。
 - 2026-11-13: 起動時の復旧が先にファイルを作り直すと、「保存の後に再起動して通知が無い」だけでは保存の成否が分からない。保存の後のファイルの中身と画面を直接確かめる。
 
 ## 12. 参照

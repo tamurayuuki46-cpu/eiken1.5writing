@@ -105,7 +105,9 @@ internal sealed class FlowEnv : IDisposable
         Random = new Random(1),
         NewSessionId = () => new Guid(++_ids, 0, 0, new byte[8]),
         Files = Files,
-        RetryDelay = TimeSpan.Zero,
+        // 本物のファイルを置き換えるので、ウイルス対策の検査などで一瞬ロックされても再試行で抜けられるよう、わずかに待つ
+        // (0 だと3回の再試行が一瞬で終わり、Windows の全体実行でまれに落ちた。2026-11-14)
+        RetryDelay = TimeSpan.FromMilliseconds(20),
     };
 
     public PracticeFlow Start() => PracticeFlow.Start(Options());

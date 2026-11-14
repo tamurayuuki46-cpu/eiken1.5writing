@@ -1,0 +1,81 @@
+<UserControl x:Class="EikenSpelling.Wpf.Views.ResultView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Bottom" Margin="24,8,24,24" HorizontalAlignment="Center">
+            <Button x:Name="HomeButton" Style="{StaticResource PrimaryButton}" MinWidth="240" MinHeight="56" FontSize="18"
+                    Content="ホームへ" Command="{Binding GoHomeCommand}" />
+            <TextBlock Style="{StaticResource Sub}" HorizontalAlignment="Center" Margin="0,8,0,0" Text="Enter でホームへ" />
+        </StackPanel>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+            <StackPanel MaxWidth="760" Margin="24,24,24,8">
+                <WrapPanel Margin="0,0,0,20">
+                    <TextBlock Style="{StaticResource Heading}" Text="練習の結果" Margin="0,0,16,0" VerticalAlignment="Bottom" />
+                    <TextBlock Style="{StaticResource Body}" FontSize="18" VerticalAlignment="Bottom">
+                        <Run Text="通常問題 " /><Run Text="{Binding NormalCorrect, Mode=OneWay}" FontSize="30" FontWeight="Bold" /><Run Text=" / " /><Run Text="{Binding NormalCount, Mode=OneWay}" /><Run Text=" 正解" />
+                    </TextBlock>
+                </WrapPanel>
+                <!-- 3枚のカード。内容の幅が 640 未満なら縦に並べる(UI 設計 6章。列数はコードビハインドで切り替える) -->
+                <UniformGrid x:Name="Cards" Columns="3" SizeChanged="OnCardsSizeChanged">
+                    <Border Style="{StaticResource Card}" Margin="6" Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Body}" FontWeight="Bold" Text="間違えた単語" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding MistakenWords}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock FontFamily="{StaticResource WordFont}" FontSize="18" Foreground="{StaticResource Text}" Text="{Binding}" Margin="0,2" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Style="{StaticResource Sub}" Text="なし" Visibility="{Binding MistakenWords, Converter={StaticResource EmptyToVisible}}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="6" Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Body}" FontWeight="Bold" Text="再練習の結果" Margin="0,0,0,8" />
+                            <TextBlock Style="{StaticResource Sub}" Text="なし" Visibility="{Binding Retries, Converter={StaticResource EmptyToVisible}}" />
+                            <ItemsControl ItemsSource="{Binding Retries}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="0,2">
+                                            <TextBlock DockPanel.Dock="Right" FontWeight="Bold" Margin="8,0,0,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Body}">
+                                                        <Setter Property="Foreground" Value="{StaticResource Mistake}" />
+                                                        <Setter Property="Text" Value="{Binding ResultText, StringFormat=✕ {0}}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding FinallyCorrect}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                                                <Setter Property="Text" Value="{Binding ResultText, StringFormat=✓ {0}}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock FontFamily="{StaticResource WordFont}" FontSize="17" Foreground="{StaticResource Text}" Text="{Binding Word}" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="6" Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Body}" FontWeight="Bold" Text="苦手状態の変化" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding ChangeGroups}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock Style="{StaticResource Sub}" FontWeight="Bold" Text="{Binding Title}" />
+                                            <TextBlock Style="{StaticResource Body}" FontFamily="{StaticResource WordFont}" Text="{Binding WordsText}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
