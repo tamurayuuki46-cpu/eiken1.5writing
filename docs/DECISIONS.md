@@ -4,10 +4,15 @@
 ここには、仕様書を読まなくても実装・レビューできるように、コードに入っている決定だけを書く。
 
 ## 収録語数とデータ
-- 約5,000語(NGSL 1.2 / NAWL 1.2 / BSL 1.2、いずれも CC BY-SA 4.0)。正確な語数は統合後に確定
-- 単語IDは固定。重複語は1件に統合し、出典は配列で持つ
-- 穴あき位置は自動生成。手動指定(`blankSource: manual`)が優先
-- 日本語訳の辞書は未確定(ライセンス確認待ち)
+- 収録 4,922 語(2026-11-14 確定。NGSL 1.2 + 補足 / NAWL 1.2 / BSL 1.2、いずれも CC BY-SA 4.0。統合後 5,046 語から除外 124 語)。版 `2026.11-5k-1`
+- 単語データは道具 `tools/EikenSpelling.WordData` で「元の CSV(`data/sources/`)+ 付加データ(`data/curation/`)」から作る。words.json は手で直さない
+- 単語IDは固定(綴り)。重複語は1件に統合し、出典は配列で持つ。英字以外を含む語は入れない
+- 除外: 1〜2文字、4文字以下の機能語・代名詞・助動詞・have・口語・接頭辞・敬称、英米の別綴り(amongst・whilst・adviser)。5文字以上のつなぎの語と thus・may は残す(`data/curation/excluded.tsv`)
+- 日本語訳はこのプロジェクトの自作(外部の辞書は使わない。ユーザー決定)。同じ訳の語は日本語モード不可になるので、訳で区別して 0 組にしている
+- Tier: Tier 1 = 英検準1級ライティングで使いやすい 696 語(`data/curation/tier1.txt`)、Tier 2 = NAWL・BSL の語、Tier 3 = その他
+- 頻度順位: NGSL の順位。BSL だけの語は「NGSL の最大順位 + BSL の順位」、NAWL だけ・NGSL 補足の語は順位なし
+- 穴あき位置は Core の `BlankGenerator` で自動生成(二重子音 → 接尾辞 → ie/ei → 黙字 → 中ほどの母音)。手動指定(`blankSource: manual`、`data/curation/blanks-manual.tsv`)が優先
+- 単語データ(訳を含む)は CC BY-SA 4.0 で公開する(`data/LICENSE-DATA.md`)
 
 ## 学習設定(v1.2)
 - 学習ルールの値は `LearningSettings` に置き、ロジックは受け取った設定で動く
