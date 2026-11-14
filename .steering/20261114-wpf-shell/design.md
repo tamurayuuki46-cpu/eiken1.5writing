@@ -196,6 +196,7 @@
 - `Theme/Tokens.xaml` に UI 設計 2章の色(Background〜Disabled)と 3章の文字(Yu Gothic UI・Cascadia Mono、無ければ Consolas)を置く。
   View は直接の色を書かず、トークンを参照する
 - `Theme/Controls.xaml` に主ボタン・副ボタン・破壊的ボタン・選択ボタン・入力欄・通知の帯・警告の帯のスタイルと状態(通常・フォーカスの輪・押下・無効)。押せる部品は高さ 44 以上
+  - フォーカスの輪は `FocusRing.Show`(Adorner)で描く。FocusVisualStyle はキーボード操作の後にしか描かれないため使わない(実機確認 B2)。回答欄だけは枠を太くする
 - 窓: 起動時に `SystemParameters.WorkArea` を見て、既定 1000×680・最小 800×560 をそれぞれ作業領域の大きさで頭打ちにする
 - 内容は最大幅 760 の中央寄せ。全体を `ScrollViewer`(縦)に入れる。判定・結果の主ボタンは下部に固定して隠れないようにする
 - 結果のカード3枚は、内容の幅が 640 未満なら縦に並べる

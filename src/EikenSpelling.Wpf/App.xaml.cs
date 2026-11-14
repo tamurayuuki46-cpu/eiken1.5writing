@@ -73,6 +73,7 @@ public partial class App : Application
         _single.ListenForActivation(() => Dispatcher.BeginInvoke(() => _window?.BringToFront()));
         MainWindow = _window;
         _window.Show();
+        _window.Activate(); // 起動直後に前面へ(最初の Enter が窓の前面化に使われないように。B3)
     }
 
     protected override void OnExit(ExitEventArgs e)

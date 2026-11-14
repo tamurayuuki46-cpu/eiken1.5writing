@@ -31,11 +31,16 @@ src/EikenSpelling.Core/   # 学習ロジック(Windows 非依存)
 src/EikenSpelling.Persistence/  # 保存・読込・復旧(Windows 非依存)
 src/EikenSpelling.Flow/   # 画面の手前の進行役: 起動・練習・保存失敗・破損時の画面の状態(Windows 非依存)
 src/EikenSpelling.Presentation/  # ViewModel(Windows 非依存。Flow の画面の状態を写す・受け付け開始のゲート・ログ・起動引数)
-src/EikenSpelling.Wpf/    # 画面(XAML)・テーマ・起動の合成・二重起動の防止(Windows 専用)。仮の単語データ Data/words.json
+src/EikenSpelling.Wpf/    # 画面(XAML)・テーマ・起動の合成・二重起動の防止(Windows 専用)。単語データ Data/words.json(道具で生成。手で直さない)
 tests/EikenSpelling.Core.Tests/  # xUnit
 tests/EikenSpelling.Persistence.Tests/  # xUnit(一時フォルダ)
 tests/EikenSpelling.Flow.Tests/  # xUnit(一時フォルダの本物のファイルで通しの流れ)
 tests/EikenSpelling.Presentation.Tests/  # xUnit(本物の Flow と手で進める時計で ViewModel を確かめる)
+tools/EikenSpelling.WordData/  # 単語データ(words.json)と検証レポートを作る道具(アプリに含めない)
+tests/EikenSpelling.WordData.Tests/  # xUnit(道具の統合・組み立て・出力)
+data/sources/             # 語彙リストの公式 CSV(改変しない)と SOURCES.md
+data/curation/            # 付加データ(日本語訳 ja/*.tsv・Tier 1・除外・手動の穴あき)。words.json はここから作る
+data/LICENSE-DATA.md      # 単語データのライセンス(CC BY-SA 4.0)
 docs/spec/                # 仕様書(正本)v1.0〜v1.2
 docs/DECISIONS.md         # コードに入っている決定の早見表
 .steering/_template/      # タスク文書の雛形。タスクごとに .steering/[日付]-[タスク]/ へコピー
@@ -99,6 +104,7 @@ prompts/8steps.md         # 8ステップの依頼文
 - 2026-11-14: 守りを二重にした箇所(コマンドの IsActive と ShellViewModel の「今の画面か」)は、片方を壊しても通るテストになりやすい。内側の守りは直接呼んで確かめる。
 - 2026-11-14: WPF(net10.0-windows)の ImplicitUsings には System.IO が入らない。File・Path を使うファイルは `using System.IO;` を書く。
 - 2026-11-14: XAML の誤りは実行するまで分からない。画面外に窓を置いて全画面を通し、PresentationTraceSources で結び付けの誤りを数えると、デスクトップ操作なしで確かめられる。
+- 2026-11-14: WPF の FocusVisualStyle はキーボード操作の後にしか描かれず、初期フォーカスに輪が出ない。常に見せる輪は Adorner で描き、外すときの層は装飾の親から取る(部品が木から外れた後は部品からたどれない)。ナレーターの読み上げは「読み上げの要約」(ナレーター キー + Alt + X)で文字として確かめられる。
 - 2026-11-13: 起動時の復旧が先にファイルを作り直すと、「保存の後に再起動して通知が無い」だけでは保存の成否が分からない。保存の後のファイルの中身と画面を直接確かめる。
 
 ## 12. 参照
