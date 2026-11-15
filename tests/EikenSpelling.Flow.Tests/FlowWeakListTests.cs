@@ -97,7 +97,7 @@ public class FlowWeakListTests
         Assert.True(changed.WeakOnly);
         Assert.Equal(2, changed.Rows.Length);
 
-        flow.BackToHome();
+        flow.CloseWeakList();
         Assert.Equal(2, flow.As<HomeScreen>().Status.Weak);
         Assert.Equal(before, env.Dir.Snapshot());
     }
@@ -216,7 +216,7 @@ public class FlowWeakListTests
         var changed = flow.As<WeakListScreen>();
         Assert.Null(changed.Message);
         Assert.Null(changed.Diagnostic);
-        flow.BackToHome(); // 保存に失敗した後も一覧からホームへ戻れる
+        flow.CloseWeakList(); // 保存に失敗した後も一覧からホームへ戻れる
         Assert.Equal(1, flow.As<HomeScreen>().Status.Weak);
         flow.OpenWeakList();
 
@@ -311,13 +311,13 @@ public class FlowWeakListTests
         CorrectWeakOnce(env, flow, Day(3)); // 再確認は 11/10
         env.Time.Now = Day(9, 23, 59, 59);
         flow.OpenWeakList();
-        flow.BackToHome();
+        flow.CloseWeakList();
         Assert.Equal(0, flow.As<HomeScreen>().Status.ReviewDue);
 
         env.Time.Now = Day(10, 0, 0, 0);
         flow.OpenWeakList();
         Assert.True(Assert.Single(flow.As<WeakListScreen>().Rows).ReviewDue);
-        flow.BackToHome();
+        flow.CloseWeakList();
 
         Assert.Equal(1, flow.As<HomeScreen>().Status.ReviewDue);
     }

@@ -57,6 +57,19 @@ public static class SessionValidator
             }
         }
 
+        if (session.Scope is { } scope)
+        {
+            // 範囲指定のあるセッション: 形が正しく、再練習を含む全問が許可集合に入っていること(範囲指定なし = null には何も課さない)
+            if (scope.Problem() is { } scopeProblem)
+            {
+                problems.Add(scopeProblem);
+            }
+            else if (session.Questions.Any(q => !scope.WordIds.Contains(q.WordId, StringComparer.Ordinal)))
+            {
+                problems.Add("出題に語彙セットの範囲の外の単語があります。");
+            }
+        }
+
         if (normals.Select(q => q.WordId).Distinct(StringComparer.Ordinal).Count() != normals.Count)
         {
             problems.Add("同じ単語が通常問題に2回あります。");
@@ -81,6 +94,15 @@ public static class SessionValidator
         {
             problems.Add(skipProblem);
             return problems;
+        }
+
+        // 答えを見るは、後回しにした通常問題への不正解だけ(再練習・通常の段階・正解は不正)
+        var skippedIndexes = session.Skips.Select(s => s.QuestionIndex).ToHashSet();
+        var scoringOrder = session.AnswerOrder;
+        if (session.Answers.Select((a, k) => (Answer: a, Slot: k < scoringOrder.Length ? scoringOrder[k] : -1))
+            .Any(x => x.Answer.Revealed && (x.Answer.IsCorrect || !skippedIndexes.Contains(x.Slot))))
+        {
+            problems.Add("「答えを見る」の採点が、後回しにした通常問題の不正解になっていません。");
         }
 
         // このセッションの反映済み answerId は、採点済みの枠(採点の順の先頭 Answers.Length 件)とちょうど一致する

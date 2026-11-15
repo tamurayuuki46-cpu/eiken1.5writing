@@ -34,6 +34,25 @@ public class BundledWordsTests
     }
 
     [Fact]
+    public void ST01_ST03_bundled_words_make_99_fifty_sets_and_50_hundred_sets_with_every_word_exactly_once()
+    {
+        var ordered = VocabularySets.Order(Set.Value);
+
+        Assert.Equal(Set.Value.Words.Count, ordered.Length);
+        foreach (var (unit, sets) in new[] { (50, 99), (100, 50) })
+        {
+            Assert.Equal(sets, VocabularySets.SetCount(ordered.Length, unit)); // 実データが 4,924 語のとき(DECISIONS.md)
+            var all = Enumerable.Range(1, sets).SelectMany(n => VocabularySets.Get(ordered, unit, n).Words.Select(w => w.Id)).ToArray();
+            Assert.Equal(ordered.Select(w => w.Id).ToArray(), all);
+            Assert.Equal(ordered.Length, all.Distinct(StringComparer.Ordinal).Count());
+            Assert.Equal(ordered.Length - ((sets - 1) * unit), VocabularySets.Get(ordered, unit, sets).Words.Length);
+        }
+
+        Assert.Equal(24, VocabularySets.Get(ordered, 50, 99).Words.Length);
+        Assert.Equal(1, ordered[0].PriorityTier); // Tier 1 が先頭のセットに集まる
+    }
+
+    [Fact]
     public void Every_bundled_word_has_a_translation_valid_blanks_sources_and_lowercase_letters()
     {
         foreach (var w in Set.Value.Words)

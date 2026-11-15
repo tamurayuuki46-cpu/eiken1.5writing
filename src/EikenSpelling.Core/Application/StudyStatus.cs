@@ -21,17 +21,20 @@ public sealed record StudyStatus(int Unseen, int Normal, int Weak, int Mastered,
         int unseen = 0, normal = 0, weak = 0, mastered = 0, due = 0;
         foreach (var entry in wordSet.Words)
         {
-            switch (progress.Word(entry.Id))
+            switch (VocabularySets.StateOf(progress.Word(entry.Id), today))
             {
-                case null:
+                case WordStudyState.Unseen:
                     unseen++;
                     break;
-                case { State: LearningState.Weak }:
+                case WordStudyState.Weak:
                     weak++;
                     break;
-                case { State: LearningState.Mastered } record:
+                case WordStudyState.Mastered:
                     mastered++;
-                    due += ReviewScheduler.IsDue(record, today) ? 1 : 0;
+                    break;
+                case WordStudyState.ReviewDue:
+                    mastered++;
+                    due++;
                     break;
                 default:
                     normal++;

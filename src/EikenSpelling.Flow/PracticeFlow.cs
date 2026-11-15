@@ -116,57 +116,28 @@ public sealed partial class PracticeFlow
         }
     }
 
-    /// <summary>ホームから苦手一覧へ。何も書かない。</summary>
-    public void OpenWeakList()
-    {
-        Require<HomeScreen>();
-        Screen = WeakList(WeakListSort.WeakFirst, weakOnly: false);
-    }
-
-    /// <summary>並べ方・絞り込みを変えて作り直す。前の理由・文言は消える。何も書かない。</summary>
-    public void ChangeWeakList(WeakListSort sort, bool weakOnly)
-    {
-        Require<WeakListScreen>();
-        Screen = WeakList(sort, weakOnly);
-    }
-
-    /// <summary>一覧から苦手のみの練習を始める(choice の苦手のみは常に真)。0語・保存失敗なら一覧のまま理由を出す。</summary>
-    public void StartWeakPractice(PracticeChoice choice)
-    {
-        ArgumentNullException.ThrowIfNull(choice);
-        var list = Require<WeakListScreen>();
-        var (empty, failure) = Begin(choice with { WeakWordsOnly = true });
-        if (empty != SelectionEmptyReason.None)
-        {
-            Screen = list with { EmptyReason = empty, Message = null, Diagnostic = null };
-        }
-        else if (failure is not null)
-        {
-            Screen = list with { EmptyReason = SelectionEmptyReason.None, Message = StartFailedMessage, Diagnostic = failure.Reason };
-        }
-    }
-
-    /// <summary>苦手一覧からホームへ。何も書かない。</summary>
-    public void BackToHome()
-    {
-        Require<WeakListScreen>();
-        Screen = Home();
-    }
-
     public void Answer(string input)
     {
         ArgumentNullException.ThrowIfNull(input);
         Require<QuestionScreen>(s => s.CanAnswer);
         var result = SessionManager.Answer(_document.Session!, _document.Progress, input, _options.Time.GetUtcNow());
+        Complete(result, input);
+    }
 
-        // 保存の成否にかかわらず先に反映する(失敗時は同じ文書を保存し直す)
+    /// <summary>
+    /// 採点の結果を文書へ反映して保存し、判定の画面にする(Answer と Reveal で共通)。保存の成否にかかわらず先に反映する
+    /// (失敗時は同じ文書を保存し直す。SessionManager の Answer・Reveal を同じ問題で二度呼ばない)。
+    /// input が null なら「答えを見る」(今回の入力は無いので差分を作らない)。
+    /// </summary>
+    private void Complete(SessionAnswerResult result, string? input)
+    {
         _document = _document with { Progress = result.Progress, Session = result.SessionToSave };
         _lastAnswer = result;
         var save = Save(_document);
         Screen = new FeedbackScreen(
             result.IsCorrect,
             result.CorrectWord,
-            result.IsCorrect ? [] : [.. SpellingDiffService.Diff(result.CorrectWord, input)],
+            result.IsCorrect || input is null ? [] : [.. SpellingDiffService.Diff(result.CorrectWord, input)],
             result.Change,
             result.Completed,
             save.Succeeded,
@@ -174,6 +145,7 @@ public sealed partial class PracticeFlow
             result.Session.SessionId)
         {
             Diagnostic = save.Reason,
+            Revealed = result.Revealed,
         };
     }
 
@@ -229,6 +201,11 @@ public sealed partial class PracticeFlow
         _document = startup.Document ?? new ProgressDocument();
         _lastAnswer = null;
         _pending = null;
+        _ordered = startup.WordSet is null ? [] : VocabularySets.Order(startup.WordSet);
+        _setUnit = VocabularySets.BaseSize;
+        _setNumber = 1;
+        _setChoice = null;
+        _setPlan = null;
         // 最初の画面はここだけで決める: 止まる画面 / 未完了の練習があれば再開の選択 / それ以外はホーム
         FlowScreen first = startup.Stop
             ?? (startup.Document?.Session is { } session ? ResumePrompt(session) : Home());
@@ -259,6 +236,7 @@ public sealed partial class PracticeFlow
 
         var question = QuestionScreenFor(session); // 先に作る(例外なら文書も画面も変えない)
         _document = started;
+        _weakListReturn = null;
         Screen = question;
         return (SelectionEmptyReason.None, null);
     }
@@ -271,14 +249,18 @@ public sealed partial class PracticeFlow
             FlashSecondsChoices = [.. _editor.Current.Practice.FlashSecondsChoices],
         };
 
-    private WeakListScreen WeakList(WeakListSort sort, bool weakOnly) =>
-        FlowViews.WeakList(_wordSet!, _document.Progress, _editor.Current, _options.Time.GetUtcNow(), sort, weakOnly) with { Defaults = _editor.Defaults };
-
     private ResumePromptScreen ResumePrompt(PracticeSession session)
     {
         var reason = ResumeCheck.Check(session, _words, _options.AvailableModes);
-        return new ResumePromptScreen(
-            new ResumeSummary(session.StartedAt, session.Answers.Length, session.Questions.Length), reason is null, reason);
+        var summary = new ResumeSummary(session.StartedAt, session.Answers.Length, session.Questions.Length)
+        {
+            Phase = SessionManager.Phase(session),
+            Skipped = session.Skips.Length,
+            Set = session.Scope is { } scope
+                ? new ResumeSetContext(scope.UnitSize, scope.Number, scope.TotalSets, scope.WordSetVersion != _wordSet!.WordSetVersion)
+                : null,
+        };
+        return new ResumePromptScreen(summary, reason is null, reason);
     }
 
     private SaveResult Save(ProgressDocument document) => _repository!.Save(WithVersions(document));

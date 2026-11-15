@@ -70,6 +70,11 @@ public static class AnswerRecorder
             throw new ArgumentException("出題モードまたは回答の種類が定義外です。", nameof(answer));
         }
 
+        if (answer.Revealed && answer.IsCorrect)
+        {
+            throw new ArgumentException("答えを見る回答は不正解です。", nameof(answer));
+        }
+
         // 初期化し忘れの ID だと別セッションの回答まで「重複」として黙って捨てられるため拒否する
         if (answer.Id.SessionId == Guid.Empty || answer.Id.QuestionIndex < 0)
         {
@@ -92,7 +97,10 @@ public static class AnswerRecorder
 
         if (!answer.IsCorrect && IsNewer(answer.AnsweredAt, m.LastWrongAt))
         {
-            m = m with { LastWrongInput = InputRules.TruncateForStorage(answer.Input), LastWrongAt = answer.AnsweredAt };
+            m = answer.Revealed
+                // 答えを見る: 実入力は無いので前の実入力を残し、その時刻を LastWrongAt から切り離す
+                ? m with { LastWrongInputAt = m.TypedInputAt, LastWrongAt = answer.AnsweredAt }
+                : m with { LastWrongInput = InputRules.TruncateForStorage(answer.Input), LastWrongAt = answer.AnsweredAt, LastWrongInputAt = null };
         }
 
         if (IsNewer(answer.AnsweredAt, m.LastAskedAt))

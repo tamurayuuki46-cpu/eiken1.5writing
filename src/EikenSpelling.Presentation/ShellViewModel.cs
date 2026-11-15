@@ -113,6 +113,19 @@ public sealed class ShellViewModel : ObservableObject
         Refresh();
     }
 
+    /// <summary>後回しの問題の答えを見る。今回の入力は無いので、直前の回答の入力は空にする(以前の入力を出さない)。</summary>
+    internal void Reveal(QuestionViewModel sender)
+    {
+        if (!IsCurrent(sender))
+        {
+            return;
+        }
+
+        LastAnswer = new LastAnswer(sender.Number, sender.Total, "", sender.ProgressText);
+        _flow.Reveal();
+        Refresh();
+    }
+
     internal void RequestExit(ScreenViewModel sender)
     {
         if (IsCurrent(sender))

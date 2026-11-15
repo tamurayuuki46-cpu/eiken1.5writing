@@ -3,8 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <DockPanel>
         <StackPanel DockPanel.Dock="Bottom" Margin="24,8,24,24" HorizontalAlignment="Center">
-            <Button x:Name="HomeButton" Style="{StaticResource PrimaryButton}" MinWidth="240" MinHeight="56" FontSize="18"
-                    Content="ホームへ" Command="{Binding GoHomeCommand}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="HomeButton" Style="{StaticResource PrimaryButton}" MinWidth="240" MinHeight="56" FontSize="18"
+                        Content="ホームへ" Command="{Binding GoHomeCommand}" Margin="0,0,12,0" />
+                <Button x:Name="WeakListButton" Style="{StaticResource SecondaryButton}" MinWidth="180" MinHeight="56" FontSize="18"
+                        Content="苦手一覧" Command="{Binding OpenWeakListCommand}"
+                        AutomationProperties.HelpText="間違えた綴りと苦手の状態を見ます。戻るとこの結果に戻ります" />
+            </StackPanel>
             <TextBlock Style="{StaticResource Sub}" HorizontalAlignment="Center" Margin="0,8,0,0" Text="Enter でホームへ" />
         </StackPanel>
         <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">

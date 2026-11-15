@@ -18,11 +18,20 @@ public enum AttemptType
 /// </summary>
 public readonly record struct AnswerId(Guid SessionId, int QuestionIndex, AttemptType AttemptType);
 
-/// <summary>1回の回答。回答日時は呼び出し側が TimeProvider から作る。</summary>
+/// <summary>
+/// 1回の回答。回答日時は呼び出し側が TimeProvider から作る。
+/// Revealed は後回しの「答えを見る」(不正解を確定するだけで、実入力は無い。IsCorrect は偽で、Input は使わない)。
+/// </summary>
 public sealed record AnswerEvent(
     AnswerId Id,
     string WordId,
     LearningMode Mode,
     bool IsCorrect,
     string? Input,
-    DateTimeOffset AnsweredAt);
+    DateTimeOffset AnsweredAt,
+    bool Revealed = false)
+{
+    /// <summary>入力は誤答入力なので伏せる(logging.md)。</summary>
+    public override string ToString() =>
+        $"AnswerEvent {{ Id = {Id}, WordId = {WordId}, Mode = {Mode}, IsCorrect = {IsCorrect}, Revealed = {Revealed}, Input = (伏せる) }}";
+}

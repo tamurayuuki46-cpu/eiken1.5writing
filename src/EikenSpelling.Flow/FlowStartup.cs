@@ -83,6 +83,12 @@ internal static class FlowStartup
             notices.Add("学習記録が壊れていたため、バックアップから復旧しました。最後の数問の記録が失われた可能性があります。");
         }
 
+        // 前回保存したときと単語データの版が違う: 語彙セットの区切りが変わっているかもしれない(一覧は今のデータで再編される)
+        if (load.Document is { WordSetVersion.Length: > 0 } saved && saved.WordSetVersion != wordSet.WordSetVersion)
+        {
+            notices.Add("単語データが更新されました。語彙セットの区切りが変わっている場合があります(途中の練習は、始めたときの語のまま続けられます)。");
+        }
+
         // 単語ごとの警告は同じ文言が並びうるのでまとめる
         notices.AddRange(load.Warnings.Distinct(StringComparer.Ordinal));
         return new(null, notices.ToImmutable(), settings, settingsRepository, wordSet, repository, load.Document ?? new ProgressDocument());

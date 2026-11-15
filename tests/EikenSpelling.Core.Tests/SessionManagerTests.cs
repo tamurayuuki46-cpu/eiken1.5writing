@@ -48,6 +48,14 @@ internal sealed class Runner(PracticeSession session, LearningProgress? progress
         return Last;
     }
 
+    /// <summary>SessionManager.Reveal などが返した結果を持ち回る。</summary>
+    public void Apply(SessionAnswerResult result)
+    {
+        Last = result;
+        Session = result.Session;
+        Progress = result.Progress;
+    }
+
     /// <summary>今の問題をスキップする(学習記録は変わらない)。</summary>
     public void Skip(DateTimeOffset at) => Session = SessionManager.Skip(Session, at);
 

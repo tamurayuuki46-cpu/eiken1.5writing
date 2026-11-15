@@ -15,6 +15,9 @@
         <DataTemplate DataType="{x:Type screens:QuestionViewModel}"><views:QuestionView /></DataTemplate>
         <DataTemplate DataType="{x:Type screens:FeedbackViewModel}"><views:FeedbackView /></DataTemplate>
         <DataTemplate DataType="{x:Type screens:ResultViewModel}"><views:ResultView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:WeakListViewModel}"><views:WeakListView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:VocabularySetViewModel}"><views:VocabularySetView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:SetStartPreviewViewModel}"><views:SetStartPreviewView /></DataTemplate>
         <DataTemplate DataType="{x:Type screens:ResumePromptViewModel}"><views:ResumePromptView /></DataTemplate>
         <DataTemplate DataType="{x:Type screens:BothCorruptViewModel}"><views:BothCorruptView /></DataTemplate>
         <DataTemplate DataType="{x:Type screens:FatalViewModel}"><views:FatalView /></DataTemplate>

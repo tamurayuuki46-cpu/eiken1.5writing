@@ -11,6 +11,13 @@
                 </TextBlock>
             </Border>
 
+            <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,6" Text="{Binding SetText}"
+                       Visibility="{Binding SetText, Converter={StaticResource NotNullToVisible}}" />
+            <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" Margin="0,0,0,12" Text="{Binding PhaseText}"
+                       Visibility="{Binding PhaseText, Converter={StaticResource NotNullToVisible}}" />
+            <Border Style="{StaticResource InfoBand}" Margin="0,0,0,16" Visibility="{Binding SetUpdatedNote, Converter={StaticResource NotNullToVisible}}">
+                <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding SetUpdatedNote}" />
+            </Border>
             <Border Style="{StaticResource InfoBand}" Margin="0,0,0,16" Visibility="{Binding CannotResumeReason, Converter={StaticResource NotNullToVisible}}">
                 <TextBlock Style="{StaticResource Body}" Text="{Binding CannotResumeReason}" />
             </Border>

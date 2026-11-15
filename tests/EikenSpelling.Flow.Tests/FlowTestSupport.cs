@@ -64,7 +64,8 @@ internal sealed class SwitchableFiles : IFileOperations
 }
 
 /// <summary>テスト用の単語データ。</summary>
-internal sealed record TestWord(string Id, string Ja = "訳", string? Blanks = null, bool Audio = true, bool Japanese = true);
+internal sealed record TestWord(
+    string Id, string Ja = "訳", string? Blanks = null, bool Audio = true, bool Japanese = true, int Tier = 3, int? Rank = null);
 
 internal static class Words
 {
@@ -87,6 +88,8 @@ internal static class Words
             ["audioEligible"] = w.Audio,
             ["japaneseEligible"] = w.Japanese,
             ["sources"] = new[] { "NGSL" },
+            ["priorityTier"] = w.Tier,
+            ["frequencyRank"] = w.Rank,
         }),
     });
 }
