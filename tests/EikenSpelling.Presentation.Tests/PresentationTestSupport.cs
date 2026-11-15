@@ -22,6 +22,9 @@ internal sealed class ManualTimeProvider(DateTimeOffset now) : TimeProvider
 
     public override DateTimeOffset GetUtcNow() => Now.ToUniversalTime();
 
+    /// <summary>端末のローカルのタイムゾーン(日別の実績の日付)。テストの日付を固定するため +9:00。</summary>
+    public override TimeZoneInfo LocalTimeZone { get; } = TimeZoneInfo.CreateCustomTimeZone("Test+9", TimeSpan.FromHours(9), "Test+9", "Test+9");
+
     public override long TimestampFrequency => TimeSpan.TicksPerSecond;
 
     public override long GetTimestamp() => _ticks;

@@ -30,17 +30,30 @@ internal sealed class SettingsEditor(SettingsRepository? repository, LearningSet
             canSave ? null : CannotSaveReason(repository?.Status),
             canSave && repository?.Status == LoadStatus.BothCorrupt
                 ? "設定ファイルが壊れているため、保存すると詳細設定は初期値になります(元のファイルは残します)。"
-                : null);
+                : null)
+        {
+            DailyGoal = Current.Goal.DailyQuestionGoal,
+            DailyGoalChoices = [.. Current.Goal.DailyQuestionGoalChoices],
+        };
     }
 
     /// <summary>画面の値を基本設定の初期値にする(保存はしない)。文言・項目・理由は消す。</summary>
     public static SettingsScreen Reset(SettingsScreen screen) =>
-        screen with { Values = PracticeChoiceApplier.Defaults, Message = null, Issues = [], Diagnostic = null };
+        screen with
+        {
+            Values = PracticeChoiceApplier.Defaults,
+            DailyGoal = DefaultSettings.Create().Goal.DailyQuestionGoal,
+            Message = null,
+            Issues = [],
+            Diagnostic = null,
+        };
 
     /// <summary>保存する。成功なら null(今の設定を置き換えた)。失敗なら設定画面(入力した値と理由)を返す。</summary>
-    public SettingsScreen? Save(SettingsScreen screen, PracticeChoice values)
+    public SettingsScreen? Save(SettingsScreen screen, PracticeChoice values, int dailyGoal)
     {
-        var updated = PracticeChoiceApplier.Apply(Current, values);
+        // 基本設定と目標だけを今の設定に重ねる(詳細設定と目標の選択肢は残す)
+        var applied = PracticeChoiceApplier.Apply(Current, values);
+        var updated = applied with { Goal = applied.Goal with { DailyQuestionGoal = dailyGoal } };
         var result = repository!.Save(updated);
         switch (result.Status)
         {
@@ -48,9 +61,9 @@ internal sealed class SettingsEditor(SettingsRepository? repository, LearningSet
                 Current = updated;
                 return null;
             case SettingsSaveStatus.Invalid:
-                return screen with { Values = values, Message = InvalidMessage, Issues = [.. result.Issues], Diagnostic = result.Reason };
+                return screen with { Values = values, DailyGoal = dailyGoal, Message = InvalidMessage, Issues = [.. result.Issues], Diagnostic = result.Reason };
             default:
-                return screen with { Values = values, Message = SaveFailedMessage, Issues = [], Diagnostic = result.Reason };
+                return screen with { Values = values, DailyGoal = dailyGoal, Message = SaveFailedMessage, Issues = [], Diagnostic = result.Reason };
         }
     }
 

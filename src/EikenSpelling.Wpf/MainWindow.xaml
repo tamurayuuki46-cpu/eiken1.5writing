@@ -19,6 +19,7 @@
         <DataTemplate DataType="{x:Type screens:VocabularySetViewModel}"><views:VocabularySetView /></DataTemplate>
         <DataTemplate DataType="{x:Type screens:SetStartPreviewViewModel}"><views:SetStartPreviewView /></DataTemplate>
         <DataTemplate DataType="{x:Type screens:ResumePromptViewModel}"><views:ResumePromptView /></DataTemplate>
+        <DataTemplate DataType="{x:Type screens:SettingsViewModel}"><views:SettingsView /></DataTemplate>
         <DataTemplate DataType="{x:Type screens:BothCorruptViewModel}"><views:BothCorruptView /></DataTemplate>
         <DataTemplate DataType="{x:Type screens:FatalViewModel}"><views:FatalView /></DataTemplate>
     </Window.Resources>

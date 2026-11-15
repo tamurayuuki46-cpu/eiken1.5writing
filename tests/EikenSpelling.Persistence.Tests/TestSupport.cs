@@ -43,6 +43,11 @@ internal sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     public DateTimeOffset Now { get; set; } = now;
 
     public override DateTimeOffset GetUtcNow() => Now.ToUniversalTime();
+
+    /// <summary>端末のローカルのタイムゾーン(日別の実績の日付に使う)。既定は夏時間の無い +9:00 で、テストの日付を固定する。</summary>
+    public TimeZoneInfo Zone { get; set; } = TimeZoneInfo.CreateCustomTimeZone("Test+9", TimeSpan.FromHours(9), "Test+9", "Test+9");
+
+    public override TimeZoneInfo LocalTimeZone => Zone;
 }
 
 /// <summary>

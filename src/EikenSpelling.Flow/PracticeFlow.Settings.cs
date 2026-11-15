@@ -10,12 +10,15 @@ public sealed partial class PracticeFlow
         Screen = _editor.Open(_options.AvailableModes);
     }
 
-    /// <summary>基本設定を保存する(保存できるときだけ)。成功ならホームへ、失敗なら設定画面のまま理由を出す。</summary>
-    public void SaveSettings(PracticeChoice values)
+    /// <summary>
+    /// 基本設定と1日の目標を保存する(保存できるときだけ)。dailyGoal が null なら画面の値(SettingsScreen.DailyGoal)。
+    /// 成功ならホームへ、失敗なら設定画面のまま理由を出す。
+    /// </summary>
+    public void SaveSettings(PracticeChoice values, int? dailyGoal = null)
     {
         ArgumentNullException.ThrowIfNull(values);
         var screen = Require<SettingsScreen>(s => s.CanSave);
-        Screen = (FlowScreen?)_editor.Save(screen, values) ?? Home(message: "設定を保存しました。");
+        Screen = (FlowScreen?)_editor.Save(screen, values, dailyGoal ?? screen.DailyGoal) ?? Home() with { Info = "設定を保存しました。" };
     }
 
     /// <summary>画面の値を基本設定の初期値にする。何も書かない(保存は SaveSettings)。</summary>

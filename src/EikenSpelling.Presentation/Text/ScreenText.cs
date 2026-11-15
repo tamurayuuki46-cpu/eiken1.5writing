@@ -127,6 +127,27 @@ public static class ScreenText
         _ => "次は再練習です",
     };
 
+    /// <summary>今日の目標と実績の1行(UI v0.3 S-10)。記録なしは「0問」と区別する。</summary>
+    public static string TodayText(DailyProgress today) =>
+        today.Graded is { } graded ? $"今日 {graded} / {today.Goal}問" : "今日 記録なし";
+
+    /// <summary>今日の1行に添える説明(達成 / あと何問 / 記録なしの理由)。</summary>
+    public static string TodayNote(DailyProgress today) =>
+        today.NoRecord ? "今日の実績は、次に採点したときから記録します"
+        : today.Achieved ? "目標達成"
+        : $"目標まであと{today.Remaining}問";
+
+    /// <summary>再開の選択の「どの練習か」(開始時の条件)。</summary>
+    public static string ResumeKindText(bool autoMix, LearningMode manualMode, bool weakOnly, int normalCount)
+    {
+        var how = autoMix ? AutoMix : $"手動({ModeName(manualMode)})";
+        return weakOnly ? $"苦手の復習・{how}・通常{normalCount}問の練習" : $"{how}・通常{normalCount}問の練習";
+    }
+
+    /// <summary>再開の選択の残りの問題数(今の列の未採点。通常問題が残っていれば再練習が加わりうる)。</summary>
+    public static string ResumeRemainingText(int remaining, bool mayAddRetries) =>
+        mayAddRetries ? $"残り {remaining}問(誤答すると再練習が加わります)" : $"残り {remaining}問";
+
     /// <summary>後回しで「答えを見る」を選んだ判定の見出し(UI v0.3 S-04)。</summary>
     public const string RevealedResult = "不正解(答えを表示)";
 

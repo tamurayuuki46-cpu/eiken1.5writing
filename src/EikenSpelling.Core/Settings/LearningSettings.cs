@@ -20,6 +20,19 @@ public sealed record LearningSettings
     public WeakWordScoreSettings WeakWordScore { get; init; } = new();
 
     public VocabularySettings Vocabulary { get; init; } = new();
+
+    /// <summary>1日の目標(ロードマップ④)。1回の練習の出題数(Practice.QuestionCount)とは別。</summary>
+    public GoalSettings Goal { get; init; } = new();
+}
+
+/// <summary>1日の目標。実績は学習記録の日別実績から求めるので、目標を変えても実績は変わらない。</summary>
+public sealed record GoalSettings
+{
+    /// <summary>1日に採点する問題数の目標(2026-11-15 本人決定: 10)。</summary>
+    public int DailyQuestionGoal { get; init; } = 10;
+
+    /// <summary>設定画面で選べる目標。</summary>
+    public IReadOnlyList<int> DailyQuestionGoalChoices { get; init; } = [5, 10, 20, 30, 50];
 }
 
 /// <summary>練習1回分の設定(基本設定+詳細設定)。</summary>

@@ -40,6 +40,8 @@ public static class ProgressValidator
             }
         }
 
+        ValidateDaily(progress.Daily, Critical);
+
         foreach (var (key, word) in progress.Words)
         {
             if (word is null)
@@ -143,4 +145,23 @@ public static class ProgressValidator
     }
 
     private static bool IsFuture(DateTimeOffset? value, DateTimeOffset now) => value is { } v && v > now;
+
+    /// <summary>日別実績(手で直したときだけ起きる組み合わせ)。件数が負・同じ日が2つ・記録開始日が無いのに日がある・開始日より前の日。</summary>
+    private static void ValidateDaily(DailyActivity daily, Action<string?, string, string> critical)
+    {
+        if (daily.Days.Any(d => d.Graded < 0 || d.Graded > DailyActivity.MaxGradedPerDay))
+        {
+            critical(null, "daily.count", "日別の実績の件数が範囲外です。");
+        }
+
+        if (daily.Days.GroupBy(d => d.Date).Any(g => g.Count() > 1))
+        {
+            critical(null, "daily.duplicate", "日別の実績に同じ日付が複数あります。");
+        }
+
+        if (daily.Days.Length > 0 && (daily.RecordingSince is not { } since || daily.Days.Any(d => d.Date < since)))
+        {
+            critical(null, "daily.since", "日別の実績に記録開始日より前の日があります。");
+        }
+    }
 }

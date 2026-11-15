@@ -36,6 +36,17 @@ public static class SettingsValidator
             Add("practice.questionCountChoices", $"問題数の選択肢は1〜{SettingsLimits.MaxQuestionCount}の数を1つ以上指定してください。");
         }
 
+        var g = settings.Goal;
+        if (!IsDailyGoal(g.DailyQuestionGoal))
+        {
+            Add("goal.dailyQuestionGoal", $"1日の目標は1〜{SettingsLimits.MaxDailyGoal}問にしてください。");
+        }
+
+        if (g.DailyQuestionGoalChoices.Count == 0 || !g.DailyQuestionGoalChoices.All(IsDailyGoal))
+        {
+            Add("goal.dailyQuestionGoalChoices", $"1日の目標の選択肢は1〜{SettingsLimits.MaxDailyGoal}の数を1つ以上指定してください。");
+        }
+
         if (double.IsNaN(p.NewWordRatio) || p.NewWordRatio < 0 || p.NewWordRatio > 1)
         {
             Add("practice.newWordRatio", "新規単語の割合は0〜1にしてください。");
@@ -156,6 +167,8 @@ public static class SettingsValidator
 
         return issues;
     }
+
+    private static bool IsDailyGoal(int goal) => goal >= 1 && goal <= SettingsLimits.MaxDailyGoal;
 
     private static bool IsQuestionCount(int count) => count >= 1 && count <= SettingsLimits.MaxQuestionCount;
 

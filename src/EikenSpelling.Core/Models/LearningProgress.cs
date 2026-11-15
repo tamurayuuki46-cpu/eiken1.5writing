@@ -13,5 +13,8 @@ public sealed record LearningProgress
     /// <summary>反映済みの回答ID(二重加算の防止。v1.1 11.2)。</summary>
     public ImmutableHashSet<AnswerId> AppliedAnswerIds { get; init; } = ImmutableHashSet<AnswerId>.Empty;
 
+    /// <summary>日別の実績(通常枠の採点の数)。無ければ記録なし(旧データ)。</summary>
+    public DailyActivity Daily { get; init; } = DailyActivity.Empty;
+
     public WordProgress? Word(string wordId) => Words.GetValueOrDefault(wordId);
 }

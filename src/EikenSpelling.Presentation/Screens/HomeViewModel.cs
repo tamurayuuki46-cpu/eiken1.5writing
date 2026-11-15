@@ -36,6 +36,10 @@ public sealed class HomeViewModel : ScreenViewModel
         ReviewDue = screen.Status.ReviewDue;
         InfoMessage = ScreenText.EmptyReason(screen.EmptyReason);
         WarningMessage = screen.Message;
+        SavedMessage = screen.Info;
+        TodayText = ScreenText.TodayText(screen.Today);
+        TodayNote = ScreenText.TodayNote(screen.Today);
+        TodayAchieved = screen.Today.Achieved;
         AudioUnavailableNote = _available.Contains(LearningMode.Audio) ? null : ScreenText.AudioUnavailable;
 
         QuestionCountOptions = [.. screen.QuestionCountChoices.Append(initial.QuestionCount).Distinct().Order()];
@@ -53,6 +57,7 @@ public sealed class HomeViewModel : ScreenViewModel
         ToggleFreeChoiceCommand = Command(() => IsFreeChoiceOpen = !IsFreeChoiceOpen);
         OpenWeakListCommand = Command(() => Invoke(flow => flow.OpenWeakList()));
         OpenVocabularySetsCommand = Command(() => Invoke(flow => flow.OpenVocabularySets()));
+        OpenSettingsCommand = Command(() => Invoke(flow => flow.OpenSettings()));
         StartCommand = Command(() => Invoke(flow => flow.StartPractice(Choice)), () => SelectedMode.Available);
     }
 
@@ -71,6 +76,20 @@ public sealed class HomeViewModel : ScreenViewModel
 
     /// <summary>開始の保存に失敗した(警告の帯)。</summary>
     public string? WarningMessage { get; }
+
+    /// <summary>設定を保存した(情報の帯)。</summary>
+    public string? SavedMessage { get; }
+
+    /// <summary>「今日 3 / 10問」(記録なしは「今日 記録なし」)。</summary>
+    public string TodayText { get; }
+
+    /// <summary>「目標まであと7問」「目標達成」、または記録なしの説明。</summary>
+    public string TodayNote { get; }
+
+    public bool TodayAchieved { get; }
+
+    /// <summary>設定画面へ(基本設定と1日の目標。戻るとホーム)。</summary>
+    public RelayCommand OpenSettingsCommand { get; }
 
     /// <summary>端末に英語の音声が無いときの理由(自由選択の中に出す)。</summary>
     public string? AudioUnavailableNote { get; }
