@@ -48,6 +48,9 @@ internal sealed class Runner(PracticeSession session, LearningProgress? progress
         return Last;
     }
 
+    /// <summary>今の問題をスキップする(学習記録は変わらない)。</summary>
+    public void Skip(DateTimeOffset at) => Session = SessionManager.Skip(Session, at);
+
     public void AnswerAll(bool correct)
     {
         while (!Session.IsCompleted)
@@ -73,7 +76,7 @@ public class SessionStartTests
         Assert.Same(settings, s.Settings);
         Assert.Equal(["a", "b"], s.Questions.Select(q => q.WordId));
         Assert.All(s.Questions, q => Assert.Equal(AttemptType.Normal, q.Attempt));
-        Assert.Equal(0, s.Position);
+        Assert.Equal(0, s.CurrentIndex);
         Assert.Equal("a", SessionManager.Current(s)!.WordId);
     }
 

@@ -19,6 +19,7 @@ public sealed class FeedbackViewModel : ScreenViewModel
         Changes = ScreenText.Changes(screen.Change);
         Number = last.Number;
         Total = last.Total;
+        ProgressText = last.ProgressText;
         Saved = screen.Saved;
         SaveFailure = screen.SaveFailure;
         IsLast = screen.Completed;
@@ -39,6 +40,9 @@ public sealed class FeedbackViewModel : ScreenViewModel
     public int Number { get; }
 
     public int Total { get; }
+
+    /// <summary>直前の出題の段階別の進み具合の1行。</summary>
+    public string ProgressText { get; }
 
     public bool Saved { get; }
 

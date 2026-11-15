@@ -28,8 +28,8 @@ public static class SessionValidator
             return problems;
         }
 
-        if (session.Questions.IsDefault || session.Answers.IsDefault
-            || session.Questions.Any(q => q is null) || session.Answers.Any(a => a is null))
+        if (session.Questions.IsDefault || session.Answers.IsDefault || session.Skips.IsDefault
+            || session.Questions.Any(q => q is null) || session.Answers.Any(a => a is null) || session.Skips.Any(s => s is null))
         {
             problems.Add("問題または回答に空(null)の要素があります。");
             return problems;
@@ -72,8 +72,16 @@ public static class SessionValidator
             problems.Add("回答の状態の値が定義外です。");
         }
 
-        // このセッションの反映済み answerId は、回答済みの位置とちょうど一致する(ずれると再開後に進めない・記録が飛ぶ)
-        var expectedIds = Enumerable.Range(0, Math.Min(session.Answers.Length, session.Questions.Length))
+        if (CheckSkips(session, normals.Count) is { } skipProblem)
+        {
+            problems.Add(skipProblem);
+            return problems;
+        }
+
+        // このセッションの反映済み answerId は、採点済みの枠(採点の順の先頭 Answers.Length 件)とちょうど一致する
+        // (ずれると再開後に進めない・記録が飛ぶ。スキップでは増えない)
+        var order = session.AnswerOrder;
+        var expectedIds = order.Take(Math.Min(session.Answers.Length, session.Questions.Length))
             .Select(i => new AnswerId(session.SessionId, i, session.Questions[i].Attempt))
             .ToHashSet();
         if (!progress.AppliedAnswerIds.Where(id => id.SessionId == session.SessionId).ToHashSet().SetEquals(expectedIds))
@@ -88,7 +96,7 @@ public static class SessionValidator
 
         if (problems.Count == 0)
         {
-            var expected = SessionManager.Replay(normals, session.Answers, session.Settings);
+            var expected = SessionManager.Replay(normals, session.Skips, session.Answers, session.Settings);
             if (!expected.SequenceEqual(session.Questions, SessionQuestionComparer.Instance))
             {
                 problems.Add("再練習の列が回答の結果と一致しません。");
@@ -101,6 +109,38 @@ public static class SessionValidator
         }
 
         return problems;
+    }
+
+    /// <summary>
+    /// スキップの台帳の検査: 通常問題の番号・重複なし・スキップした順(= 番号の昇順)・
+    /// スキップの時点でそれより前の通常問題をすべて処理済み(スキップしなかった前の通常問題は採点済み)。
+    /// </summary>
+    private static string? CheckSkips(PracticeSession session, int normalCount)
+    {
+        if (session.Skips.IsEmpty)
+        {
+            return null;
+        }
+
+        var indexes = session.Skips.Select(s => s.QuestionIndex).ToList();
+        if (indexes.Any(i => i < 0 || i >= normalCount))
+        {
+            return "スキップした問題の番号が通常問題の範囲外です。";
+        }
+
+        for (var k = 1; k < indexes.Count; k++)
+        {
+            if (indexes[k] <= indexes[k - 1])
+            {
+                return "スキップした問題が重複しているか、順序が正しくありません。";
+            }
+        }
+
+        var lastSkipped = indexes[^1];
+        var answeredBefore = Enumerable.Range(0, lastSkipped).Count(i => !indexes.Contains(i));
+        return session.Answers.Length < answeredBefore
+            ? "スキップより前の通常問題が採点されていません。"
+            : null;
     }
 
     private sealed class SessionQuestionComparer : IEqualityComparer<SessionQuestion>

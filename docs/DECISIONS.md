@@ -38,7 +38,7 @@
   - 「初期値に戻す」は基本設定の5項目だけを画面の値に戻す(保存で確定)
 
 ## 保存・復旧(2026-11-13)
-- progress.json = `{ schemaVersion, wordSetVersion, sourceVersion, progress, session? }`(schemaVersion の正本は ProgressDocument。Application に置く)
+- progress.json = `{ schemaVersion(2), wordSetVersion, sourceVersion, progress, session? }`(session に skips。v2 は 2026-11-15)(schemaVersion の正本は ProgressDocument。Application に置く)
 - 保存: tmp に書いて Flush(true) → 読み戻して変換・検査 → File.Replace(tmp, 主, bak)(初回は移動)。入出力の失敗は最大3回再試行
 - 読込の結果: Loaded / FirstRun / RecoveredFromBackup / BothCorrupt / NewerVersion / Unavailable。後ろ3つは何も書き換えない
 - 復旧は「bak の中身を tmp へ → 壊れた主を退避名へ移動 → tmp を主へ」。壊れたファイルは `<元の名前>.corrupt-<日時ミリ秒>[-n].json` で残す(上限なし)。残った tmp は `.orphan-<日時>` で残す
@@ -62,6 +62,19 @@
 - 保存失敗時の約束: 呼び出し側は SessionManager.Answer が返した学習記録とセッションを保存し直す。Answer を同じ問題でもう一度呼ばない(呼ぶと重複として例外)
 - 読込でセッションに不備があれば、セッションだけ捨てて知らせる(学習記録は読む。元のファイルの写しを退避名で残す)
 - 古い版のアプリで開くと session は無視され、次の保存で消える(学習記録は残る)
+
+## スキップ(後回し)と Schema v2(2026-11-15、UI v0.3 / P0-AC v0.2 の承認に基づく。`.steering/20261115-skip-save-retry/`)
+- 進行と採点を分ける最小の台帳: `PracticeSession.Skips`(`{ questionIndex, skippedAt }` をスキップした順)。採点は `Answers`(採点した順)
+- 採点の順 = スキップしなかった通常問題(番号順)→ スキップした通常問題(スキップ順 = 後回し)→ 再練習(番号順)。今の問題はその `Answers.Length` 番目。位置・段階は保存しない
+- スキップできるのは通常の段階の問題だけ(後回し・再練習では不可。単語ごとに1回)。採点せず、学習記録・answerId・苦手度・正答率は変えない
+- 後回しで答えても answerId は元の通常枠(番号・Normal)のまま。再練習はすべての通常枠を採点し終えたときに足す(順は通常問題の番号順)
+- 保存失敗: Flow がスキップの候補文書を1つだけ作って持ち、再保存ではそれをそのまま使う(スキップ・時刻を作り直さない)。保存できるまで同じ問題に留まり、回答・スキップ・中断は受け付けない
+- 画面の数え方(UI v0.3 FA): 「通常:全5問中の2問目」「後回し:全2問中の1問目」「再練習2問目・残り1問(今の問題を含む)」。文は ScreenText.ProgressText。進み具合のバーは練習全体の採点済みの数 / 列の長さ
+- progress.json の schemaVersion は 2。1 も読む(skips なし = 空、位置どおりの採点で再採点しない)。保存は常に 2(古いアプリは NewerVersion で上書きしない)
+- 主ファイルが v1 のとき、最初の保存の前に主と(あれば)bak の原本バイトを `progress.v1-protected.main.json` / `.bak.json` に残す(`.partial` に書いて一致を確かめてから完成名へ。同じ役割の完成コピーのどれかと一致すれば再利用)。起動・読込だけでは書かない
+  - 仕様からの差分(2026-11-15 ユーザー決定): P0-AC v0.2 B節は「不一致なら原本を残して停止」だが、止めると bak からの復旧後や旧版に戻した後に保存が永久にできなくなる。
+    一致するコピーが無ければ、既存のコピーを上書きせず次の別名(`progress.v1-protected.main-2.json` …、役割ごとに最大100)に新しく保護して保存を続ける
+- 戻し方: v2 で保存した後に旧版へ戻すときは、旧版を起動する前に `progress.v1-protected.main.json` を `progress.json` として置き直す(v2 の後に記録した分は失われる)。自動のダウングレードはしない
 
 ## 進行役 Flow(2026-11-13、`PracticeFlow`)
 - 画面の状態(ホーム / 苦手一覧 / 設定 / 再開の選択 / 出題 / 判定 / 結果 / 両方破損 / 終了のみ)を Flow が持ち、受け付けない操作は InvalidOperationException(状態・ファイルは変えない)

@@ -40,21 +40,30 @@ internal static class ResumeCheck
     /// </summary>
     private static IEnumerable<(string WordId, string Word, LearningMode Mode)> UpcomingQuestions(PracticeSession session)
     {
-        foreach (var q in session.Questions.Skip(session.Position))
+        var order = session.AnswerOrder;
+        foreach (var i in order.Skip(session.Answers.Length))
         {
+            var q = session.Questions[i];
             yield return (q.WordId, q.Word, q.Mode);
         }
 
         var practice = session.Settings.Practice;
-        if (session.Position >= session.NormalCount || practice.RetryCount <= 0)
+        if (session.Answers.Length >= session.NormalCount || practice.RetryCount <= 0)
         {
             yield break; // 再練習はすでに列に入っている(または無い)
+        }
+
+        // 採点済みの通常問題は採点の順から引く(後回しがあると位置と番号がずれるため)
+        var scored = new Dictionary<int, bool>();
+        for (var k = 0; k < session.Answers.Length; k++)
+        {
+            scored[order[k]] = session.Answers[k].IsCorrect;
         }
 
         for (var i = 0; i < session.NormalCount; i++)
         {
             var q = session.Questions[i];
-            var mayRetry = i >= session.Position || !session.Answers[i].IsCorrect;
+            var mayRetry = !scored.TryGetValue(i, out var correct) || !correct;
             if (mayRetry)
             {
                 yield return (q.WordId, q.Word, RetryModeRule.Choose(q.Mode, q.EligibleModes, practice.AutoMix));

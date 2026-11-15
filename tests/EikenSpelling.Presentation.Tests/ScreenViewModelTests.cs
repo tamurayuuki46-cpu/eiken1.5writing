@@ -157,7 +157,8 @@ public class ScreenViewModelTests
         var retry = shell.As<QuestionViewModel>();
         Assert.True(retry.IsRetry);
         Assert.NotNull(retry.RetryNote);
-        Assert.Equal(2, retry.Total);
+        Assert.Equal(1, retry.Total); // 再練習は「残り(今の問題を含む)」
+        Assert.Equal("再練習1問目・残り1問", retry.ProgressText);
 
         var last = shell.AnswerCurrent(env.Time, correct: true);
         Assert.True(last.IsLast);

@@ -73,7 +73,45 @@ public static class SessionManager
     public static SessionQuestion? Current(PracticeSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
-        return session.IsCompleted ? null : session.Questions[session.Position];
+        return session.CurrentIndex is { } index ? session.Questions[index] : null;
+    }
+
+    /// <summary>今の問題の段階。完了していれば null。</summary>
+    public static QuestionPhase? Phase(PracticeSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (session.CurrentIndex is not { } index)
+        {
+            return null;
+        }
+
+        if (session.Questions[index].Attempt == AttemptType.Retry)
+        {
+            return QuestionPhase.Retry;
+        }
+
+        return session.Skips.Any(s => s.QuestionIndex == index) ? QuestionPhase.Deferred : QuestionPhase.Normal;
+    }
+
+    /// <summary>
+    /// 今の問題をスキップできるか: 通常の段階の問題だけ(後回し・再練習は不可)。
+    /// 通常問題の単語は重複しないので、単語ごとに1回までの上限もこれで守られる。
+    /// </summary>
+    public static bool CanSkip(PracticeSession session) => Phase(session) == QuestionPhase.Normal;
+
+    /// <summary>
+    /// 今の通常問題を後回しにする(採点しない。学習記録は変えない)。呼び出し側は返したセッションを保存し、
+    /// 失敗したら同じ値を保存し直す(Skip をもう一度呼ばない。呼ぶと次の問題をスキップしてしまう)。
+    /// </summary>
+    public static PracticeSession Skip(PracticeSession session, DateTimeOffset skippedAt)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (!CanSkip(session))
+        {
+            throw new InvalidOperationException("今の問題はスキップできません(通常問題の一巡目だけスキップできます)。");
+        }
+
+        return session with { Skips = session.Skips.Add(new SessionSkip(session.CurrentIndex!.Value, skippedAt)) };
     }
 
     public static SessionAnswerResult Answer(PracticeSession session, LearningProgress progress, string input, DateTimeOffset answeredAt)
@@ -81,14 +119,15 @@ public static class SessionManager
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(progress);
         ArgumentNullException.ThrowIfNull(input);
-        if (session.IsCompleted)
+        if (session.CurrentIndex is not { } index)
         {
             throw new InvalidOperationException("このセッションは終わっています。");
         }
 
-        var index = session.Position;
         var q = session.Questions[index];
         var correct = SpellingJudge.IsCorrect(q.Word, input);
+
+        // answerId は元の問題の番号(後回しで答えても通常枠の ID のまま)
         var recorded = AnswerRecorder.Apply(
             progress,
             new AnswerEvent(new AnswerId(session.SessionId, index, q.Attempt), q.WordId, q.Mode, correct, input, answeredAt),
@@ -102,7 +141,7 @@ public static class SessionManager
         var updated = session with
         {
             Answers = answers,
-            Questions = AppendRetries(session.Questions, answers, index, session.Settings),
+            Questions = AppendRetries(session.Questions, session.Skips, answers, session.Settings),
         };
         var completed = updated.IsCompleted;
         var newProgress = completed ? RemoveSession(recorded.Progress, session.SessionId) : recorded.Progress;
@@ -127,16 +166,22 @@ public static class SessionManager
         return kept.Count == progress.AppliedAnswerIds.Count ? progress : progress with { AppliedAnswerIds = kept };
     }
 
-    /// <summary>通常問題と回答から、再練習の足し方を再生して列を作り直す(検査用)。回答が列より多ければそこで止める。</summary>
+    /// <summary>
+    /// 通常問題・スキップ・採点から、再練習の足し方を再生して列を作り直す(検査用)。採点が列より多ければそこで止める。
+    /// </summary>
     public static IReadOnlyList<SessionQuestion> Replay(
-        IReadOnlyList<SessionQuestion> normalQuestions, IReadOnlyList<SessionAnswer> answers, LearningSettings settings)
+        IReadOnlyList<SessionQuestion> normalQuestions,
+        IReadOnlyList<SessionSkip> skips,
+        IReadOnlyList<SessionAnswer> answers,
+        LearningSettings settings)
     {
         var questions = normalQuestions.ToImmutableArray();
+        var skipArray = skips.ToImmutableArray();
         var soFar = ImmutableArray<SessionAnswer>.Empty;
         for (var i = 0; i < answers.Count && i < questions.Length; i++)
         {
             soFar = soFar.Add(answers[i]);
-            questions = AppendRetries(questions, soFar, i, settings);
+            questions = AppendRetries(questions, skipArray, soFar, settings);
         }
 
         return questions;
@@ -164,24 +209,29 @@ public static class SessionManager
     }
 
     /// <summary>
-    /// 再練習の足し方(design.md 4章): 最後の通常問題に答えたら誤答した単語を通常問題の順に、
-    /// 再練習で誤答したら回数が RetryCount 未満のとき同じ単語・同じモードを最後に足す。
+    /// 再練習の足し方(design.md 4章): すべての通常問題(後回しを含む)を採点し終えたら誤答した単語を通常問題の順に、
+    /// 再練習で誤答したら回数が RetryCount 未満のとき同じ単語・同じモードを最後に足す。answers の最後が今回の採点。
     /// </summary>
     private static ImmutableArray<SessionQuestion> AppendRetries(
-        ImmutableArray<SessionQuestion> questions, ImmutableArray<SessionAnswer> answers, int index, LearningSettings settings)
+        ImmutableArray<SessionQuestion> questions, ImmutableArray<SessionSkip> skips, ImmutableArray<SessionAnswer> answers, LearningSettings settings)
     {
         var retryCount = settings.Practice.RetryCount;
-        var q = questions[index];
-        var normalCount = questions.Count(x => x.Attempt == AttemptType.Normal);
-        if (retryCount <= 0)
+        if (retryCount <= 0 || answers.IsEmpty)
         {
             return questions;
         }
 
-        if (q.Attempt == AttemptType.Normal && index == normalCount - 1)
+        var order = SessionOrder.Of(questions, skips);
+        var index = order[answers.Length - 1];
+        var last = answers[^1];
+        var q = questions[index];
+        var normalCount = questions.Count(x => x.Attempt == AttemptType.Normal);
+
+        if (q.Attempt == AttemptType.Normal && answers.Length == normalCount)
         {
+            var wrong = new HashSet<int>(Enumerable.Range(0, normalCount).Where(k => !answers[k].IsCorrect).Select(k => order[k]));
             var retries = Enumerable.Range(0, normalCount)
-                .Where(i => !answers[i].IsCorrect)
+                .Where(wrong.Contains)
                 .Select(i => questions[i] with
                 {
                     Attempt = AttemptType.Retry,
@@ -190,7 +240,7 @@ public static class SessionManager
             return questions.AddRange(retries);
         }
 
-        if (q.Attempt == AttemptType.Retry && !answers[index].IsCorrect
+        if (q.Attempt == AttemptType.Retry && !last.IsCorrect
             && questions.Count(x => x.Attempt == AttemptType.Retry && x.WordId == q.WordId) < retryCount)
         {
             return questions.Add(q);

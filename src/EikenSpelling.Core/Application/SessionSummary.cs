@@ -41,12 +41,15 @@ public sealed record SessionSummary(
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        var answered = session.Questions.Take(session.Answers.Length)
-            .Zip(session.Answers, (q, a) => (Question: q, Answer: a))
+        // 採点の順(後回しを含む)に問題と採点を組にする
+        var answered = session.AnswerOrder.Take(session.Answers.Length)
+            .Zip(session.Answers, (i, a) => (Question: session.Questions[i], Answer: a))
             .ToList();
         var normal = answered.Where(x => x.Question.Attempt == AttemptType.Normal).ToList();
 
+        // 間違えた単語は通常問題の番号順(後回しで答えても元の位置。再練習の並びと揃える)
         var mistaken = normal.Where(x => !x.Answer.IsCorrect)
+            .OrderBy(x => session.Questions.IndexOf(x.Question))
             .Select(x => new SummaryWord(x.Question.WordId, x.Question.Word))
             .ToImmutableArray();
 

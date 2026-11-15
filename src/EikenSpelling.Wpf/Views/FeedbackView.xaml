@@ -36,9 +36,7 @@
         <DockPanel DockPanel.Dock="Top" Margin="32,16,32,0" MaxWidth="760">
             <TextBlock DockPanel.Dock="Right" Style="{StaticResource Body}" FontSize="14" Foreground="{StaticResource Saved}"
                        Visibility="{Binding Saved, Converter={StaticResource BoolToVisible}}" Text="✓ 保存しました" />
-            <TextBlock Style="{StaticResource Sub}" FontSize="14">
-                <Run Text="{Binding Number, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding Total, Mode=OneWay}" />
-            </TextBlock>
+            <TextBlock Style="{StaticResource Sub}" FontSize="14" Text="{Binding ProgressText}" />
         </DockPanel>
 
         <!-- 保存失敗の警告の帯 -->

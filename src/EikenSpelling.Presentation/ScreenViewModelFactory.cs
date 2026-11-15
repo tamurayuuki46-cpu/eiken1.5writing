@@ -11,7 +11,9 @@ internal static class ScreenViewModelFactory
         // 0語・開始の保存失敗でホームに戻ったときは、直前に選んでいた値を残す
         HomeScreen home => new HomeViewModel(shell, home, (previous as HomeViewModel)?.Choice),
         ResumePromptScreen resume => new ResumePromptViewModel(shell, resume),
-        QuestionScreen question => new QuestionViewModel(shell, question),
+        // スキップの保存待ちは同じ問題に留まるので、打ちかけの入力を残す(UI v0.3 S-03)
+        QuestionScreen question => new QuestionViewModel(
+            shell, question, question.SkipSavePending ? (previous as QuestionViewModel)?.Input : null),
         FeedbackScreen feedback => new FeedbackViewModel(
             shell, feedback, shell.LastAnswer ?? throw new InvalidOperationException("判定画面に出す直前の回答の値がありません。")),
         ResultScreen result => new ResultViewModel(shell, result),

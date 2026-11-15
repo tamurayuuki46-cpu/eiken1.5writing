@@ -74,8 +74,30 @@ public sealed record ResumePromptScreen(ResumeSummary Session, bool CanResume, s
 /// <summary>出題する問題。Japanese・Blanks は今の単語データから引く。</summary>
 public sealed record QuestionView(string WordId, string Word, LearningMode Mode, string Japanese, string? Blanks, bool IsRetry);
 
-/// <summary>Number は1始まり。Total は再練習が足されると増える。FlashSeconds はセッション開始時の設定の値。</summary>
-public sealed record QuestionScreen(QuestionView Question, int Number, int Total, double FlashSeconds) : FlowScreen;
+/// <summary>
+/// 段階別の進み具合(UI v0.3 FA): Number は1始まり。通常は「通常問題の何問目 / 通常問題の数」、後回しは「後回しの何問目 / 後回しの数」、
+/// 再練習は「再練習の何問目 / 残り(今の問題を含む)」。Answered / QueueLength は練習全体の採点済みの数と列の長さ(進み具合のバー用)。
+/// FlashSeconds はセッション開始時の設定の値。
+/// CanSkip は Core が決めた「今スキップできるか」(保存待ちの間は偽)。
+/// SkipSaveFailure がある間はスキップの保存待ち: RetrySave だけ受け付け、回答・スキップ・中断はできない。原因は Diagnostic。
+/// </summary>
+public sealed record QuestionScreen(QuestionView Question, int Number, int Total, double FlashSeconds) : FlowScreen
+{
+    public QuestionPhase Phase { get; init; } = QuestionPhase.Normal;
+
+    public int Answered { get; init; }
+
+    /// <summary>ログ用(後回しの保存失敗を記録するとき)。</summary>
+    public Guid SessionId { get; init; }
+
+    public int QueueLength { get; init; }
+
+    public bool CanSkip { get; init; }
+
+    public string? SkipSaveFailure { get; init; }
+
+    public bool SkipSavePending => SkipSaveFailure is not null;
+}
 
 /// <summary>判定。Saved が偽の間は Next できない(再保存か終了だけ)。SaveFailure は画面の文言、原因は Diagnostic。SessionId はログ用。</summary>
 public sealed record FeedbackScreen(

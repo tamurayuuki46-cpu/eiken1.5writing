@@ -15,6 +15,7 @@ namespace EikenSpelling.Flow;
 public sealed partial class PracticeFlow
 {
     private const string StartFailedMessage = "練習を始められませんでした(保存できません)。";
+    private const string SkipSaveFailedMessage = "後回しを保存できませんでした。もう一度保存してください。直らないときはアプリを終了してください(この問題から再開できます)。";
     private const string SaveFailedMessage = "保存できませんでした。もう一度保存してください。直らないときはアプリを終了してください(最後に保存できた問題から再開できます)。";
 
     private readonly FlowOptions _options;
@@ -24,6 +25,9 @@ public sealed partial class PracticeFlow
     private ProgressRepository? _repository;
     private ProgressDocument _document = new();
     private SessionAnswerResult? _lastAnswer;
+
+    // スキップの保存候補(保存に失敗している間だけ持つ)。再保存ではこれをそのまま使う(スキップ・時刻を作り直さない)
+    private ProgressDocument? _pendingSkip;
 
     private PracticeFlow(FlowOptions options)
     {
@@ -149,7 +153,7 @@ public sealed partial class PracticeFlow
     public void Answer(string input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        Require<QuestionScreen>();
+        Require<QuestionScreen>(s => !s.SkipSavePending);
         var result = SessionManager.Answer(_document.Session!, _document.Progress, input, _options.Time.GetUtcNow());
 
         // 保存の成否にかかわらず先に反映する(失敗時は同じ文書を保存し直す)
@@ -170,8 +174,25 @@ public sealed partial class PracticeFlow
         };
     }
 
+    /// <summary>
+    /// 今の通常問題を後回しにする(採点しない)。保存できたら次の問題へ。
+    /// 失敗したら同じ問題に留まり、候補を持ったまま RetrySave だけを受け付ける。
+    /// </summary>
+    public void Skip()
+    {
+        Require<QuestionScreen>(s => s.CanSkip && !s.SkipSavePending);
+        var candidate = _document with { Session = SessionManager.Skip(_document.Session!, _options.Time.GetUtcNow()) };
+        SaveSkip(candidate);
+    }
+
     public void RetrySave()
     {
+        if (Screen is QuestionScreen { SkipSavePending: true })
+        {
+            SaveSkip(_pendingSkip!);
+            return;
+        }
+
         var feedback = Require<FeedbackScreen>(s => !s.Saved);
         var save = Save(_document);
         Screen = feedback with
@@ -189,10 +210,10 @@ public sealed partial class PracticeFlow
         Screen = last.Completed ? new ResultScreen(SessionSummary.From(last.Session)) : QuestionScreenFor(_document.Session!);
     }
 
-    /// <summary>練習をやめて再開の選択へ。回答ごとに保存済みなので何も書かない。</summary>
+    /// <summary>練習をやめて再開の選択へ。回答ごとに保存済みなので何も書かない(スキップの保存待ちの間はできない)。</summary>
     public void Quit()
     {
-        Require<QuestionScreen>();
+        Require<QuestionScreen>(s => !s.SkipSavePending);
         Screen = ResumePrompt(_document.Session!);
     }
 
@@ -215,6 +236,7 @@ public sealed partial class PracticeFlow
         _repository = startup.Repository;
         _document = startup.Document ?? new ProgressDocument();
         _lastAnswer = null;
+        _pendingSkip = null;
         // 最初の画面はここだけで決める: 止まる画面 / 未完了の練習があれば再開の選択 / それ以外はホーム
         FlowScreen first = startup.Stop
             ?? (startup.Document?.Session is { } session ? ResumePrompt(session) : Home());
@@ -266,16 +288,49 @@ public sealed partial class PracticeFlow
             new ResumeSummary(session.StartedAt, session.Answers.Length, session.Questions.Length), reason is null, reason);
     }
 
+    /// <summary>候補を保存する。成功したら文書を候補にして次の問題へ、失敗したら同じ問題で候補を持ち続ける。</summary>
+    private void SaveSkip(ProgressDocument candidate)
+    {
+        var current = (QuestionScreen)Screen;
+        var save = Save(candidate);
+        if (!save.Succeeded)
+        {
+            _pendingSkip = candidate;
+            Screen = current with { CanSkip = false, SkipSaveFailure = SkipSaveFailedMessage, Diagnostic = save.Reason };
+            return;
+        }
+
+        var next = QuestionScreenFor(candidate.Session!); // 先に作る(例外なら文書も画面も変えない)
+        _document = candidate;
+        _pendingSkip = null;
+        Screen = next;
+    }
+
     private QuestionScreen QuestionScreenFor(PracticeSession session)
     {
-        var q = SessionManager.Current(session)
+        var index = session.CurrentIndex
             ?? throw new InvalidOperationException("このセッションには次の問題がありません。");
+        var q = session.Questions[index];
+        var phase = SessionManager.Phase(session)!.Value;
+        var (number, total) = phase switch
+        {
+            QuestionPhase.Normal => (index + 1, session.NormalCount),
+            QuestionPhase.Deferred => (session.Skips.Select(s => s.QuestionIndex).ToList().IndexOf(index) + 1, session.Skips.Length),
+            _ => (session.Answers.Length - session.NormalCount + 1, session.Questions.Length - session.Answers.Length),
+        };
         var entry = _words.GetValueOrDefault(q.WordId);
         return new QuestionScreen(
             new QuestionView(q.WordId, q.Word, q.Mode, entry?.Ja ?? "", entry?.Blanks, q.Attempt == AttemptType.Retry),
-            session.Position + 1,
-            session.Questions.Length,
-            session.Settings.Practice.FlashSeconds);
+            number,
+            total,
+            session.Settings.Practice.FlashSeconds)
+        {
+            Phase = phase,
+            CanSkip = SessionManager.CanSkip(session),
+            Answered = session.Answers.Length,
+            SessionId = session.SessionId,
+            QueueLength = session.Questions.Length,
+        };
     }
 
     private SaveResult Save(ProgressDocument document) => _repository!.Save(WithVersions(document));

@@ -8,7 +8,11 @@ namespace EikenSpelling.Core.Application;
 /// </summary>
 public sealed record ProgressDocument
 {
-    public const int CurrentSchemaVersion = 1;
+    /// <summary>
+    /// 2: セッションにスキップの台帳(skips)を追加(2026-11-15、P0-PS)。1 も読む(skips なし = 空)。保存は常にこの版。
+    /// 古いアプリは 2 を NewerVersion として上書きしない(台帳を知らずに採点の位置を取り違えないため)。
+    /// </summary>
+    public const int CurrentSchemaVersion = 2;
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
 

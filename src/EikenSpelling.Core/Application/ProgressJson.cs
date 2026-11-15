@@ -98,8 +98,8 @@ public static class ProgressJson
         {
             var session = node.Deserialize<PracticeSession>(Options);
             if (session is null || session.Settings is null || LearningSettingsJson.HasNullElements(session.Settings)
-                || session.Questions.IsDefault || session.Answers.IsDefault
-                || session.Questions.Any(q => q is null) || session.Answers.Any(a => a is null))
+                || session.Questions.IsDefault || session.Answers.IsDefault || session.Skips.IsDefault
+                || session.Questions.Any(q => q is null) || session.Answers.Any(a => a is null) || session.Skips.Any(s => s is null))
             {
                 return (null, true);
             }

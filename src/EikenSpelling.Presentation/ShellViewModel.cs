@@ -13,11 +13,14 @@ namespace EikenSpelling.Presentation;
 public sealed record ShellOptions(IReadOnlySet<LearningMode> AvailableModes, IUserPrompt Prompt, IAppLog Log, TimeProvider Time);
 
 /// <summary>判定画面に出す直前の回答の値(FeedbackScreen には無い)。Input は正規化した文字列。ログ・ToString に出さない。</summary>
-public sealed class LastAnswer(int number, int total, string input)
+public sealed class LastAnswer(int number, int total, string input, string progressText = "")
 {
     public int Number { get; } = number;
 
     public int Total { get; } = total;
+
+    /// <summary>出題画面の段階別の進み具合の1行(判定画面にも同じものを出す)。</summary>
+    public string ProgressText { get; } = progressText;
 
     public string Input { get; } = input;
 
@@ -55,8 +58,8 @@ public sealed class ShellViewModel : ObservableObject
     /// <summary>通知の一覧。閉じるまで残す(画面が変わっても消さない。R5)。</summary>
     public ObservableCollection<string> Notices { get; } = [];
 
-    /// <summary>保存できていない回答がある(閉じる前の確認に使う。R25)。</summary>
-    public bool HasUnsavedAnswer => _flow.Screen is FeedbackScreen { Saved: false };
+    /// <summary>保存できていない回答・スキップがある(閉じる前の確認に使う。R25)。</summary>
+    public bool HasUnsavedAnswer => _flow.Screen is FeedbackScreen { Saved: false } or QuestionScreen { SkipSavePending: true };
 
     public LastAnswer? LastAnswer { get; private set; }
 
@@ -88,7 +91,7 @@ public sealed class ShellViewModel : ObservableObject
             return;
         }
 
-        LastAnswer = new LastAnswer(sender.Number, sender.Total, SpellingJudge.Normalize(input));
+        LastAnswer = new LastAnswer(sender.Number, sender.Total, SpellingJudge.Normalize(input), sender.ProgressText);
         _flow.Answer(input);
         Refresh();
     }
@@ -108,7 +111,12 @@ public sealed class ShellViewModel : ObservableObject
         var screen = _flow.Screen;
         if (screen.Diagnostic is { } diagnostic)
         {
-            _options.Log.Write(LogLevel.Error, screen.GetType().Name, diagnostic, (screen as FeedbackScreen)?.SessionId);
+            _options.Log.Write(LogLevel.Error, screen.GetType().Name, diagnostic, screen switch
+            {
+                FeedbackScreen f => f.SessionId,
+                QuestionScreen q => q.SessionId,
+                _ => null,
+            });
         }
 
         // 今の Flow では同じ通知が2回届く経路は無い(通知は起動・再読込の最初の画面と StartFresh の後だけ)。

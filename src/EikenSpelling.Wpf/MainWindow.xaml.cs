@@ -17,7 +17,7 @@ namespace EikenSpelling.Wpf;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private const string UnsavedCloseMessage = "この回答はまだ保存できていません。閉じると、この1問の回答は記録されません。閉じますか?";
+    private const string UnsavedCloseMessage = "この回答(または後回し)はまだ保存できていません。閉じると、この1問の操作は記録されません。閉じますか?";
 
     private readonly ShellViewModel _shell;
     private bool _closeWithoutConfirmation;

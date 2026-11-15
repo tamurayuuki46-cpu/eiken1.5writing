@@ -411,7 +411,7 @@ public class ProgressRepositorySessionTests
         Assert.Equal(LoadStatus.Loaded, load.Status);
         Assert.False(load.SessionDiscarded);
         Assert.Equal(session.SessionId, load.Document!.Session!.SessionId);
-        Assert.Equal(1, load.Document.Session.Position);
+        Assert.Equal(1, load.Document.Session.CurrentIndex);
         Assert.Single(load.Document.Progress.AppliedAnswerIds); // 今のセッションの分は残る
     }
 
