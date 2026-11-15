@@ -42,13 +42,87 @@ internal sealed class ScriptedPrompt : IUserPrompt
 
     public List<string> Informed { get; } = [];
 
+    /// <summary>確認ダイアログが開いている間に起きること(タイマーの発火など)を差し込む。</summary>
+    public Action? WhileOpen { get; set; }
+
     public bool Confirm(string message)
     {
         Asked.Add(message);
+        WhileOpen?.Invoke();
         return Answer;
     }
 
     public void Inform(string message) => Informed.Add(message);
+}
+
+/// <summary>読み上げを記録する偽の実装。FailNext で次の読み上げを失敗させる。</summary>
+internal sealed class FakeSpeech : Speech.ISpeechPlayer
+{
+    public bool IsAvailable { get; set; } = true;
+
+    public List<string> Spoken { get; } = [];
+
+    public int Stops { get; private set; }
+
+    public bool FailNext { get; set; }
+
+    /// <summary>真なら失敗の通知をすぐ呼ばずに取っておく(遅れて届く失敗。FireDeferred で呼ぶ)。</summary>
+    public bool DeferFailure { get; set; }
+
+    private Action<string>? _deferred;
+
+    public void Speak(string text, Action<string> onFailed)
+    {
+        Spoken.Add(text);
+        if (DeferFailure)
+        {
+            _deferred = onFailed;
+        }
+        else if (FailNext)
+        {
+            FailNext = false;
+            onFailed("TestFailure");
+        }
+    }
+
+    public void FireDeferred() => _deferred?.Invoke("TestFailure");
+
+    public void Stop() => Stops++;
+}
+
+/// <summary>手で進めるスケジューラ。RunDue で、指定した経過時間までに来た予定を実行する。</summary>
+internal sealed class ManualScheduler : Scheduling.IUiScheduler
+{
+    private readonly List<(TimeSpan Delay, Action Action, Cancel Handle)> _items = [];
+
+    public IReadOnlyList<TimeSpan> Delays => [.. _items.Where(i => !i.Handle.Cancelled).Select(i => i.Delay)];
+
+    public IDisposable Schedule(TimeSpan delay, Action action)
+    {
+        var handle = new Cancel();
+        _items.Add((delay, action, handle));
+        return handle;
+    }
+
+    /// <summary>取り消されていない予定をすべて実行する(時間が来たとみなす)。</summary>
+    public void RunAll()
+    {
+        foreach (var item in _items.ToList())
+        {
+            _items.Remove(item);
+            if (!item.Handle.Cancelled)
+            {
+                item.Action();
+            }
+        }
+    }
+
+    public sealed class Cancel : IDisposable
+    {
+        public bool Cancelled { get; private set; }
+
+        public void Dispose() => Cancelled = true;
+    }
 }
 
 /// <summary>書いた行を覚えるだけのログ。</summary>
@@ -80,6 +154,10 @@ internal sealed class ShellEnv : IDisposable
 
     public HashSet<LearningMode> Modes { get; set; } = [Japanese, Blank];
 
+    public FakeSpeech Speech { get; } = new();
+
+    public ManualScheduler Scheduler { get; } = new();
+
     public string? DataDirectory { get; set; }
 
     public PracticeFlow StartFlow() => PracticeFlow.Start(new FlowOptions
@@ -99,7 +177,7 @@ internal sealed class ShellEnv : IDisposable
     /// <summary>ShellViewModel を作り、最初の画面の受け付けを開始する(窓が初期フォーカスを移した後と同じ)。</summary>
     public ShellViewModel Start()
     {
-        var shell = new ShellViewModel(StartFlow(), new ShellOptions(Modes, Prompt, Log, Time));
+        var shell = new ShellViewModel(StartFlow(), new ShellOptions(Modes, Prompt, Log, Time, Speech, Scheduler));
         shell.Current.BeginAccepting();
         return shell;
     }

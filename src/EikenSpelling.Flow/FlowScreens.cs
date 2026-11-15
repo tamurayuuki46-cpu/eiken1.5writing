@@ -32,6 +32,9 @@ public sealed record HomeScreen(
 
     /// <summary>問題数の選択肢(今の設定の QuestionCountChoices)。画面はこれを選択欄に出す(正本を LearningSettings の1つに保つ)。</summary>
     public ImmutableArray<int> QuestionCountChoices { get; init; } = [];
+
+    /// <summary>フラッシュの表示秒数の選択肢(今の設定の FlashSecondsChoices)。自由選択で使う。</summary>
+    public ImmutableArray<double> FlashSecondsChoices { get; init; } = [];
 }
 
 /// <summary>
@@ -72,14 +75,19 @@ public sealed record ResumeSummary(DateTimeOffset StartedAt, int Answered, int T
 public sealed record ResumePromptScreen(ResumeSummary Session, bool CanResume, string? CannotResumeReason, string? Message = null) : FlowScreen;
 
 /// <summary>出題する問題。Japanese・Blanks は今の単語データから引く。</summary>
-public sealed record QuestionView(string WordId, string Word, LearningMode Mode, string Japanese, string? Blanks, bool IsRetry);
+public sealed record QuestionView(string WordId, string Word, LearningMode Mode, string Japanese, string? Blanks, bool IsRetry)
+{
+    /// <summary>綴りを伏せる(音声・フラッシュでは答えになるため。画面以外に出さない)。</summary>
+    public override string ToString() => $"QuestionView {{ Mode = {Mode}, IsRetry = {IsRetry}, Word = (伏せる) }}";
+}
 
 /// <summary>
 /// 段階別の進み具合(UI v0.3 FA): Number は1始まり。通常は「通常問題の何問目 / 通常問題の数」、後回しは「後回しの何問目 / 後回しの数」、
 /// 再練習は「再練習の何問目 / 残り(今の問題を含む)」。Answered / QueueLength は練習全体の採点済みの数と列の長さ(進み具合のバー用)。
 /// FlashSeconds はセッション開始時の設定の値。
-/// CanSkip は Core が決めた「今スキップできるか」(保存待ちの間は偽)。
-/// SkipSaveFailure がある間はスキップの保存待ち: RetrySave だけ受け付け、回答・スキップ・中断はできない。原因は Diagnostic。
+/// CanSkip は Core が決めた「今スキップできるか」(保存待ち・フラッシュの表示前と表示中は偽)。
+/// SaveFailure がある間は保存待ち(後回し・フラッシュの表示開始): RetrySave だけ受け付け、回答・スキップ・中断はできない。原因は Diagnostic。
+/// Flash はフラッシュの問題の表示の段階(フラッシュ以外は None)。
 /// </summary>
 public sealed record QuestionScreen(QuestionView Question, int Number, int Total, double FlashSeconds) : FlowScreen
 {
@@ -94,9 +102,27 @@ public sealed record QuestionScreen(QuestionView Question, int Number, int Total
 
     public bool CanSkip { get; init; }
 
-    public string? SkipSaveFailure { get; init; }
+    public string? SaveFailure { get; init; }
 
-    public bool SkipSavePending => SkipSaveFailure is not null;
+    public bool SavePending => SaveFailure is not null;
+
+    public FlashPhase Flash { get; init; } = FlashPhase.None;
+
+    /// <summary>今回答できるか(保存待ちでなく、フラッシュなら単語を隠した後)。</summary>
+    public bool CanAnswer => !SavePending && Flash is FlashPhase.None or FlashPhase.Hidden;
+}
+
+/// <summary>
+/// フラッシュの問題の表示の段階(UI v0.3 フラッシュ途中再開 FA)。
+/// NotStarted: まだ見せていない(画面は ShowFlash を呼ぶ)/ Showing: 見せている(秒数の後に EndFlash)/ Hidden: 隠した後(入力欄)。
+/// 表示開始の印は Showing に入る前に保存する。再開時は印があれば Hidden(単語を再表示しない)、無ければ NotStarted。
+/// </summary>
+public enum FlashPhase
+{
+    None,
+    NotStarted,
+    Showing,
+    Hidden,
 }
 
 /// <summary>判定。Saved が偽の間は Next できない(再保存か終了だけ)。SaveFailure は画面の文言、原因は Diagnostic。SessionId はログ用。</summary>

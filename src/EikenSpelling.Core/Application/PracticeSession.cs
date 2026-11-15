@@ -57,6 +57,17 @@ public sealed record PracticeSession
     /// <summary>スキップした通常問題(スキップした順)。v1 の文書には無い(= 空)。</summary>
     public ImmutableArray<SessionSkip> Skips { get; init; } = [];
 
+    /// <summary>
+    /// フラッシュの表示を始めた提示(そのときの処理した数 = Answers.Length + Skips.Length)。
+    /// 単語を見せる前に保存する(再起動後に単語を再表示しないため。UI v0.3 フラッシュ途中再開 FA)。無ければ null(書かない)。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? FlashShownStep { get; init; }
+
+    /// <summary>処理した数(採点 + スキップ)。提示ごとに1つずつ増える。</summary>
+    [JsonIgnore]
+    public int ProcessedSteps => Answers.Length + Skips.Length;
+
     [JsonIgnore]
     public int NormalCount => Questions.Count(q => q.Attempt == AttemptType.Normal);
 

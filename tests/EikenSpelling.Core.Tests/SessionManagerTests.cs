@@ -51,6 +51,9 @@ internal sealed class Runner(PracticeSession session, LearningProgress? progress
     /// <summary>今の問題をスキップする(学習記録は変わらない)。</summary>
     public void Skip(DateTimeOffset at) => Session = SessionManager.Skip(Session, at);
 
+    /// <summary>今のフラッシュの問題に表示開始の印を付ける。</summary>
+    public void Mark() => Session = SessionManager.MarkFlashShown(Session);
+
     public void AnswerAll(bool correct)
     {
         while (!Session.IsCompleted)

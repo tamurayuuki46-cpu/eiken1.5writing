@@ -24,7 +24,7 @@ public class SkipViewModelTests
         Assert.NotSame(first, failed);
         Assert.Equal(first.WordForTests, failed.WordForTests);
         Assert.Equal("abc", failed.Input); // 打ちかけの入力を残す
-        Assert.NotNull(failed.SkipSaveFailure);
+        Assert.NotNull(failed.SaveFailure);
         Assert.False(failed.AnswerCommand.CanExecute(null));
         Assert.False(failed.SkipCommand.CanExecute(null));
         Assert.False(failed.QuitCommand.CanExecute(null));
@@ -44,7 +44,7 @@ public class SkipViewModelTests
 
         var next = shell.As<QuestionViewModel>();
         Assert.NotEqual(first.WordForTests, next.WordForTests);
-        Assert.Null(next.SkipSaveFailure);
+        Assert.Null(next.SaveFailure);
         Assert.Equal("", next.Input);
         Assert.Equal(2, next.Number);
         Assert.Equal("通常:全3問中の2問目", next.ProgressText);

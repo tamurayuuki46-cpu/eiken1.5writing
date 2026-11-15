@@ -5,12 +5,23 @@ using EikenSpelling.Core.Models;
 using EikenSpelling.Flow;
 using EikenSpelling.Presentation.Logging;
 using EikenSpelling.Presentation.Mvvm;
+using EikenSpelling.Presentation.Scheduling;
 using EikenSpelling.Presentation.Screens;
+using EikenSpelling.Presentation.Speech;
 
 namespace EikenSpelling.Presentation;
 
-/// <summary>ShellViewModel に渡すもの。AvailableModes は Flow に渡したものと同じ集合。</summary>
-public sealed record ShellOptions(IReadOnlySet<LearningMode> AvailableModes, IUserPrompt Prompt, IAppLog Log, TimeProvider Time);
+/// <summary>
+/// ShellViewModel に渡すもの。AvailableModes は Flow に渡したものと同じ集合。
+/// Speech・Scheduler は無ければ何もしない実装(音声の読み上げ・フラッシュの秒数の待ち)。
+/// </summary>
+public sealed record ShellOptions(
+    IReadOnlySet<LearningMode> AvailableModes,
+    IUserPrompt Prompt,
+    IAppLog Log,
+    TimeProvider Time,
+    ISpeechPlayer? Speech = null,
+    IUiScheduler? Scheduler = null);
 
 /// <summary>判定画面に出す直前の回答の値(FeedbackScreen には無い)。Input は正規化した文字列。ログ・ToString に出さない。</summary>
 public sealed class LastAnswer(int number, int total, string input, string progressText = "")
@@ -59,7 +70,7 @@ public sealed class ShellViewModel : ObservableObject
     public ObservableCollection<string> Notices { get; } = [];
 
     /// <summary>保存できていない回答・スキップがある(閉じる前の確認に使う。R25)。</summary>
-    public bool HasUnsavedAnswer => _flow.Screen is FeedbackScreen { Saved: false } or QuestionScreen { SkipSavePending: true };
+    public bool HasUnsavedAnswer => _flow.Screen is FeedbackScreen { Saved: false } or QuestionScreen { SavePending: true };
 
     public LastAnswer? LastAnswer { get; private set; }
 
@@ -68,6 +79,12 @@ public sealed class ShellViewModel : ObservableObject
     internal IUserPrompt Prompt => _options.Prompt;
 
     internal IReadOnlySet<LearningMode> AvailableModes => _options.AvailableModes;
+
+    internal ISpeechPlayer Speech => _options.Speech ?? NoSpeechPlayer.Instance;
+
+    internal IUiScheduler Scheduler => _options.Scheduler ?? NoUiScheduler.Instance;
+
+    internal IAppLog Log => _options.Log;
 
     public void DismissNotice(string notice) => Notices.Remove(notice);
 

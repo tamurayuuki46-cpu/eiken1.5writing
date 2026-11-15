@@ -72,6 +72,11 @@ public static class SessionValidator
             problems.Add("回答の状態の値が定義外です。");
         }
 
+        if (session.FlashShownStep is { } shown && (shown < 0 || shown > session.ProcessedSteps))
+        {
+            problems.Add("フラッシュの表示開始の印が範囲外です。");
+        }
+
         if (CheckSkips(session, normals.Count) is { } skipProblem)
         {
             problems.Add(skipProblem);

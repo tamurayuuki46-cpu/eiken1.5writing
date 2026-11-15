@@ -59,7 +59,7 @@ public class FlowSkipTests
         flow.Skip();
         var failed = flow.As<QuestionScreen>();
         Assert.Equal(A, failed.Question.WordId);
-        Assert.NotNull(failed.SkipSaveFailure);
+        Assert.NotNull(failed.SaveFailure);
         Assert.NotNull(failed.Diagnostic);
         Assert.False(failed.CanSkip);
 
@@ -67,7 +67,7 @@ public class FlowSkipTests
         env.Time.Now = env.Time.Now.AddMinutes(1); // 再保存で時刻を作り直さないことを確かめるため
         flow.RetrySave();
         Assert.Equal(A, flow.As<QuestionScreen>().Question.WordId);
-        Assert.NotNull(flow.As<QuestionScreen>().SkipSaveFailure);
+        Assert.NotNull(flow.As<QuestionScreen>().SaveFailure);
         Assert.Throws<InvalidOperationException>(() => flow.Answer(A));
         Assert.Throws<InvalidOperationException>(flow.Skip);
         Assert.Throws<InvalidOperationException>(flow.Quit);
@@ -81,7 +81,7 @@ public class FlowSkipTests
         flow.RetrySave();
         var onB = flow.As<QuestionScreen>();
         Assert.Equal(B, onB.Question.WordId);
-        Assert.Null(onB.SkipSaveFailure);
+        Assert.Null(onB.SaveFailure);
         Assert.Null(onB.Diagnostic);
         AssertSkippedOnceWithoutScoring(env, skippedAt);
 

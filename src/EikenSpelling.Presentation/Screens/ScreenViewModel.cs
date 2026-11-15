@@ -13,6 +13,7 @@ public abstract class ScreenViewModel : ObservableObject
 {
     private readonly List<RelayCommand> _commands = [];
     private readonly AcceptGate _gate;
+    private bool _acceptingStarted;
 
     protected ScreenViewModel(ShellViewModel shell)
     {
@@ -27,13 +28,39 @@ public abstract class ScreenViewModel : ObservableObject
 
     protected ShellViewModel Shell { get; }
 
-    /// <summary>窓が初期フォーカスを移した後に呼ぶ。最初の1回だけ数え始める。</summary>
-    public void BeginAccepting() => _gate.Begin();
+    /// <summary>窓が初期フォーカスを移した後に呼ぶ。最初の1回だけ数え始め、OnAcceptingStarted を呼ぶ。</summary>
+    public void BeginAccepting()
+    {
+        _gate.Begin();
+        if (_acceptingStarted || !IsActive)
+        {
+            return;
+        }
+
+        _acceptingStarted = true;
+        OnAcceptingStarted();
+    }
 
     internal void Deactivate()
     {
+        if (!IsActive)
+        {
+            return;
+        }
+
         IsActive = false;
         RaiseCommandsChanged();
+        OnDeactivated();
+    }
+
+    /// <summary>画面が見えて受け付けを始めた最初の1回(音声の自動再生・フラッシュの表示開始など)。</summary>
+    protected virtual void OnAcceptingStarted()
+    {
+    }
+
+    /// <summary>今の画面でなくなった(読み上げ・タイマーを止める)。</summary>
+    protected virtual void OnDeactivated()
+    {
     }
 
     /// <summary>ゲートと IsActive で包んだコマンドを作る。</summary>
