@@ -50,6 +50,22 @@ public sealed record WeakListScreen(
 {
     /// <summary>練習設定の初期値(保存済みの基本設定)。一覧から始める練習の苦手のみは常に真になる。</summary>
     public PracticeChoice Defaults { get; init; } = PracticeChoiceApplier.Defaults;
+
+    /// <summary>どの画面から開いたか(「戻る」の行き先。結果からなら同じ結果、ホームからならホーム)。</summary>
+    public WeakListOrigin Origin { get; init; } = WeakListOrigin.Home;
+
+    /// <summary>
+    /// 一括復習の対象(苦手、または再確認の日が来た克服済み)が学習記録にあるか。偽なら画面は開始を押せなくし理由を出す(UC-30)。
+    /// 真でも、端末で使えるモードが無いなどで0語になることはある(そのときは StartWeakPractice が EmptyReason を返す)。
+    /// </summary>
+    public bool HasReviewTargets { get; init; }
+}
+
+/// <summary>苦手一覧を開いた元の画面(UI v0.3 S-05 FA)。</summary>
+public enum WeakListOrigin
+{
+    Home,
+    Result,
 }
 
 /// <summary>
@@ -102,6 +118,9 @@ public sealed record QuestionScreen(QuestionView Question, int Number, int Total
 
     public bool CanSkip { get; init; }
 
+    /// <summary>「答えを見る」を選べるか(Core が決めた CanReveal: 後回しの段階だけ。フラッシュは隠した後)。</summary>
+    public bool CanReveal { get; init; }
+
     public string? SaveFailure { get; init; }
 
     public bool SavePending => SaveFailure is not null;
@@ -134,7 +153,13 @@ public sealed record FeedbackScreen(
     bool Completed,
     bool Saved,
     string? SaveFailure,
-    Guid SessionId) : FlowScreen;
+    Guid SessionId) : FlowScreen
+{
+    /// <summary>
+    /// 後回しの「答えを見る」による不正解(UI v0.3 S-04: 「不正解(答えを表示)」)。Diff は空(今回の入力は無い)。
+    /// </summary>
+    public bool Revealed { get; init; }
+}
 
 public sealed record ResultScreen(SessionSummary Summary) : FlowScreen;
 

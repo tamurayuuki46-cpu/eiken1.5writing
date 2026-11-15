@@ -68,6 +68,10 @@
             <TextBlock Style="{StaticResource Sub}" Text="おすすめ学習で Enter を押すと始まります" HorizontalAlignment="Center" Margin="0,8,0,0"
                        Visibility="{Binding IsFreeChoiceOpen, Converter={StaticResource FalseToVisible}}" />
 
+            <Button x:Name="WeakListButton" Style="{StaticResource LinkButton}" Content="苦手一覧を見る" HorizontalAlignment="Center" Margin="0,12,0,0"
+                    Command="{Binding OpenWeakListCommand}"
+                    AutomationProperties.HelpText="間違えた綴りと苦手の状態を見ます。戻るとホームに戻ります" />
+
             <!-- 自由選択(ホーム内に展開。今回だけ。基本設定には書き戻さない) -->
             <Border Style="{StaticResource Card}" Margin="0,16,0,0" Width="580"
                     Visibility="{Binding IsFreeChoiceOpen, Converter={StaticResource BoolToVisible}}">

@@ -87,6 +87,16 @@
 - 保存待ち(後回し・フラッシュの表示開始)は同じ仕組み: 候補の文書を1つ持ち、RetrySave で同じ候補を保存する
 - 残件: 同音異義語の音声除外(一覧の本人確認が要る。`.steering/20261114-audio-mode/` T1・T2)
 
+## 結果・苦手診断・答えを見る(2026-11-15、ロードマップ②。`.steering/20261115-result-weak-review/`)
+- 後回し(Deferred)の問題だけ「答えを見る」(`SessionManager.Reveal`・`CanReveal`)。通常は後回しか回答、再練習は回答だけ(Skip・答えを見るは Core・Flow・画面のどれでも拒否)
+- 答えを見る = 元の通常枠(answerId は番号・Normal のまま)の不正解を1回確定。苦手登録・再練習は既存規則。判定画面は「不正解(答えを表示)」と正解語だけ(差分・今回の入力なし)
+- 学習記録: `ModeRecord.LastWrongInput` は更新しない。`LastWrongAt` は更新し、前の実入力の時刻を任意項目 `lastWrongInputAt` に残す(null なら LastWrongAt と同じ。実入力の誤答で null に戻す)
+- セッション: `SessionAnswer.revealed`(偽は書かない)。Validator は「後回しにした通常問題への不正解」以外の revealed を拒否
+- schemaVersion は 2 のまま(任意項目の追加)。古いアプリは2項目を無視する(保存し直すと消え、実入力の時刻が LastWrongAt に寄るだけで記録は壊れない)
+- 苦手一覧の「直近の入力」は実入力の最新(`LatestMistake.TypedInputOf`)。苦手度の「直近の誤答」は従来どおり LastWrongAt(答えを見るを含む)
+- 苦手一覧はホームと結果から開く。結果から開いたら戻るで同じ `ResultScreen`(表示用の要約だけ。完了したセッションは文書に無い)、ホームからならホーム。`BackToHome` は `CloseWeakList` に改名
+- 行の展開は ViewModel の状態だけ(Flow・保存を呼ばない)。一括復習は既存の `StartWeakPractice`(0件は理由を出して一覧に留まる)
+
 ## 進行役 Flow(2026-11-13、`PracticeFlow`)
 - 画面の状態(ホーム / 苦手一覧 / 設定 / 再開の選択 / 出題 / 判定 / 結果 / 両方破損 / 終了のみ)を Flow が持ち、受け付けない操作は InvalidOperationException(状態・ファイルは変えない)
 - 起動の順: 保存先(完全な絶対パスだけ)→ 設定 → 単語データ(壊れた JSON・検査エラーは終了のみ)→ 学習記録。起動だけでは何も書かない(バックアップからの復旧を除く。設定・学習記録とも、壊れた主を退避して bak から作り直す)

@@ -5,7 +5,7 @@ using EikenSpelling.Core.Models;
 namespace EikenSpelling.Core.Application;
 
 /// <summary>結果画面に出す単語。</summary>
-public sealed record SummaryWord(string WordId, string Word);
+public sealed record SummaryWord(string WordId, string Word, bool Revealed = false);
 
 /// <summary>単語ごとの再練習の結果。Attempts は回答済みの再練習の回数。</summary>
 public sealed record RetryResult(string WordId, string Word, int Attempts, bool FinallyCorrect);
@@ -50,7 +50,7 @@ public sealed record SessionSummary(
         // 間違えた単語は通常問題の番号順(後回しで答えても元の位置。再練習の並びと揃える)
         var mistaken = normal.Where(x => !x.Answer.IsCorrect)
             .OrderBy(x => session.Questions.IndexOf(x.Question))
-            .Select(x => new SummaryWord(x.Question.WordId, x.Question.Word))
+            .Select(x => new SummaryWord(x.Question.WordId, x.Question.Word, x.Answer.Revealed))
             .ToImmutableArray();
 
         var retries = answered.Where(x => x.Question.Attempt == AttemptType.Retry)

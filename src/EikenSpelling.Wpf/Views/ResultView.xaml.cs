@@ -10,7 +10,17 @@ public partial class ResultView : UserControl, IInitialFocus
 
     public ResultView() => InitializeComponent();
 
-    public void FocusInitial() => HomeButton.Focus();
+    public void FocusInitial()
+    {
+        if (DataContext is EikenSpelling.Presentation.Screens.ResultViewModel { ReturnedFromWeakList: true })
+        {
+            WeakListButton.Focus();
+        }
+        else
+        {
+            HomeButton.Focus();
+        }
+    }
 
     private void OnCardsSizeChanged(object sender, SizeChangedEventArgs e) =>
         Cards.Columns = e.NewSize.Width < StackBelow ? 1 : 3;

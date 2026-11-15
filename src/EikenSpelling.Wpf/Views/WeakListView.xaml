@@ -1,0 +1,95 @@
+<UserControl x:Class="EikenSpelling.Wpf.Views.WeakListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding BackCommand}" />
+    </UserControl.InputBindings>
+    <DockPanel>
+        <!-- 下: 一括復習(主)と戻る(固定) -->
+        <StackPanel DockPanel.Dock="Bottom" Margin="24,8,24,24" HorizontalAlignment="Center">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="ReviewButton" Style="{StaticResource PrimaryButton}" MinWidth="240" MinHeight="56" FontSize="18"
+                        Content="苦手語をまとめて復習" Command="{Binding ReviewCommand}" Margin="0,0,12,0"
+                        AutomationProperties.HelpText="苦手な単語だけで練習を始めます" />
+                <Button x:Name="BackButton" Style="{StaticResource SecondaryButton}" MinWidth="160" MinHeight="56" FontSize="18"
+                        Content="{Binding BackLabel}" Command="{Binding BackCommand}" />
+            </StackPanel>
+            <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" Margin="0,8,0,0" TextWrapping="Wrap" Text="{Binding ReviewUnavailableText}"
+                       Visibility="{Binding ReviewUnavailableText, Converter={StaticResource NotNullToVisible}}" />
+            <TextBlock Style="{StaticResource Sub}" HorizontalAlignment="Center" Margin="0,8,0,0" Text="Esc で戻る" />
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+            <StackPanel MaxWidth="760" Margin="24,20,24,8">
+                <WrapPanel Margin="0,0,0,12">
+                    <TextBlock Style="{StaticResource Heading}" Text="苦手一覧" Margin="0,0,16,0" VerticalAlignment="Bottom" />
+                    <TextBlock Style="{StaticResource Body}" VerticalAlignment="Bottom">
+                        <Run Text="苦手 " /><Run Text="{Binding WeakCount, Mode=OneWay}" FontWeight="Bold" /><Run Text=" 語 ・ 克服済み " /><Run Text="{Binding MasteredCount, Mode=OneWay}" FontWeight="Bold" /><Run Text=" 語" />
+                    </TextBlock>
+                </WrapPanel>
+
+                <!-- 一括復習が0語・保存失敗だったときの帯 -->
+                <Border Style="{StaticResource InfoBand}" Margin="0,0,0,12" Visibility="{Binding InfoMessage, Converter={StaticResource NotNullToVisible}}">
+                    <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding InfoMessage}" AutomationProperties.LiveSetting="Polite" />
+                </Border>
+                <Border Style="{StaticResource WarnBand}" Margin="0,0,0,12" Visibility="{Binding WarningMessage, Converter={StaticResource NotNullToVisible}}">
+                    <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Foreground="{StaticResource DangerText}" Text="{Binding WarningMessage, StringFormat=⚠ {0}}" />
+                </Border>
+
+                <!-- 並べ方・絞り込み(閲覧だけ。何も書かない) -->
+                <WrapPanel Margin="0,0,0,12">
+                    <Button x:Name="SortWeakFirstButton" Style="{StaticResource SecondaryButton}" Content="{Binding SortWeakFirstLabel}" Command="{Binding SortWeakFirstCommand}" Margin="0,0,8,0" />
+                    <Button x:Name="SortRecentButton" Style="{StaticResource SecondaryButton}" Content="{Binding SortRecentLabel}" Command="{Binding SortRecentCommand}" Margin="0,0,8,0" />
+                    <Button x:Name="WeakOnlyButton" Style="{StaticResource SecondaryButton}" Content="{Binding WeakOnlyLabel}" Command="{Binding ToggleWeakOnlyCommand}" />
+                </WrapPanel>
+
+                <TextBlock Style="{StaticResource Body}" Text="{Binding EmptyText}" Margin="0,8,0,0"
+                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisible}}" />
+
+                <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,8" Padding="16,10">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="{Binding ToggleLabel}" Command="{Binding ToggleCommand}"
+                                                MinWidth="80" Margin="12,0,0,0"
+                                                AutomationProperties.Name="{Binding Word, StringFormat=詳細: {0}}"
+                                                AutomationProperties.ItemStatus="{Binding ToggleLabel}" />
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource Sub}" Text="{Binding SummaryText}" VerticalAlignment="Center" />
+                                        <TextBlock FontFamily="{StaticResource WordFont}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource Text}"
+                                                   Text="{Binding Word}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                        <TextBlock Style="{StaticResource Sub}" FontWeight="Bold" Text="{Binding StateText}" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <!-- 行内詳細: 正しい綴り・直近に本人が入力した誤綴り・モード別の状態・克服/再確認 -->
+                                    <StackPanel Margin="0,10,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisible}}">
+                                        <TextBlock Style="{StaticResource Body}" FontSize="14">
+                                            <Run Text="正しい綴り: " /><Run FontFamily="{StaticResource WordFont}" FontWeight="Bold" Text="{Binding Word, Mode=OneWay}" />
+                                        </TextBlock>
+                                        <!-- 誤答入力は画面にだけ出す(スクリーンリーダーの名前は固定。DECISIONS.md UI 技術) -->
+                                        <TextBlock Style="{StaticResource Body}" FontSize="14" Margin="0,4,0,0"
+                                                   AutomationProperties.Name="直近に入力した誤綴り">
+                                            <Run Text="直近に入力した誤綴り: " /><Run FontFamily="{StaticResource WordFont}" Text="{Binding TypedInput, Mode=OneWay}" /><Run Text="{Binding TypedInputMeta, Mode=OneWay}" />
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0">
+                                            <Run Text="最後に間違えた日時: " /><Run Text="{Binding LastMistakeText, Mode=OneWay}" />
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource Body}" FontSize="14" FontWeight="Bold" Margin="0,8,0,2" Text="モード別" />
+                                        <ItemsControl ItemsSource="{Binding ModeLines}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Style="{StaticResource Body}" FontSize="14" TextWrapping="Wrap" Text="{Binding}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Style="{StaticResource Body}" FontSize="14" Margin="0,8,0,0" TextWrapping="Wrap" Text="{Binding StatusText}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

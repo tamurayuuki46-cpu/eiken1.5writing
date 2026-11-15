@@ -53,7 +53,7 @@ public sealed partial class PracticeFlow
         {
             _pending = pending;
             var message = pending.Kind == PendingKind.Skip ? SkipSaveFailedMessage : FlashSaveFailedMessage;
-            Screen = current with { CanSkip = false, SaveFailure = message, Diagnostic = save.Reason };
+            Screen = current with { CanSkip = false, CanReveal = false, SaveFailure = message, Diagnostic = save.Reason };
             return;
         }
 
@@ -92,6 +92,7 @@ public sealed partial class PracticeFlow
 
             // フラッシュは隠した後だけ後回しにできる(見る前・見ている間は答えの操作をしない)
             CanSkip = SessionManager.CanSkip(session) && flash is FlashPhase.None or FlashPhase.Hidden,
+            CanReveal = SessionManager.CanReveal(session) && flash is FlashPhase.None or FlashPhase.Hidden,
             Answered = session.Answers.Length,
             SessionId = session.SessionId,
             QueueLength = session.Questions.Length,

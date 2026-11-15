@@ -77,7 +77,7 @@ public static class ProgressValidator
                     Warning(id, "mode.input", "最後の誤答入力が上限の文字数を超えています。");
                 }
 
-                if (IsFuture(record.LastWrongAt, now) || IsFuture(record.LastAskedAt, now))
+                if (IsFuture(record.LastWrongAt, now) || IsFuture(record.LastWrongInputAt, now) || IsFuture(record.LastAskedAt, now))
                 {
                     Warning(id, "mode.future", "モード別の記録に現在より後の日時があります。");
                 }

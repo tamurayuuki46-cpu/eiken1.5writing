@@ -23,4 +23,25 @@ public sealed record LatestMistake(LearningMode Mode, DateTimeOffset At, string?
 
         return best;
     }
+
+    /// <summary>
+    /// 利用者が実際に打った誤答のうち最新(各モードの実入力の時刻 = LastWrongInputAt ?? LastWrongAt で比べる)。
+    /// 「答えを見る」で LastWrongAt だけが新しくなっていても、前の実入力をそのまま返す。実入力が無ければ null。
+    /// 同じ時点ならモードの順で先のもの。
+    /// </summary>
+    public static LatestMistake? TypedInputOf(WordProgress word)
+    {
+        ArgumentNullException.ThrowIfNull(word);
+        LatestMistake? best = null;
+        foreach (var mode in Enum.GetValues<LearningMode>())
+        {
+            if (word.Mode(mode) is { LastWrongInput: { } input, TypedInputAt: { } at }
+                && (best is null || at.UtcTicks > best.At.UtcTicks))
+            {
+                best = new LatestMistake(mode, at, input);
+            }
+        }
+
+        return best;
+    }
 }

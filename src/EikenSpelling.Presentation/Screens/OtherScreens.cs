@@ -27,12 +27,13 @@ public sealed class ResultViewModel : ScreenViewModel
         var s = screen.Summary;
         NormalCorrect = s.NormalCorrect;
         NormalCount = s.NormalCount;
-        MistakenWords = [.. s.MistakenWords.Select(w => w.Word)];
+        MistakenWords = [.. s.MistakenWords.Select(w => w.Revealed ? w.Word + ScreenText.RevealedMark : w.Word)];
         Retries = [.. s.Retries.Select(r => new RetryRow(r.Word, r.FinallyCorrect))];
         ChangeGroups = [.. Enum.GetValues<StateChangeKind>().Select(kind => new ChangeGroup(
             ScreenText.StateChange(kind),
             [.. s.StateChanges.Where(c => c.Kind == kind).Select(c => c.Word)]))];
         GoHomeCommand = Command(() => Invoke(flow => flow.GoHome()));
+        OpenWeakListCommand = Command(() => Invoke(flow => flow.OpenWeakList()));
     }
 
     public int NormalCorrect { get; }
@@ -46,6 +47,12 @@ public sealed class ResultViewModel : ScreenViewModel
     public IReadOnlyList<ChangeGroup> ChangeGroups { get; }
 
     public RelayCommand GoHomeCommand { get; }
+
+    /// <summary>苦手一覧から戻った(View は「苦手一覧」ボタンにフォーカスを戻す)。</summary>
+    public bool ReturnedFromWeakList { get; init; }
+
+    /// <summary>苦手一覧へ(戻るとこの結果に戻る。UI v0.3 S-09)。</summary>
+    public RelayCommand OpenWeakListCommand { get; }
 }
 
 /// <summary>再開の選択(R15)。</summary>

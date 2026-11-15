@@ -20,7 +20,8 @@ public class FlowInvalidOperationTests
         OpenWeakList,
         ChangeWeakList,
         StartWeakPractice,
-        BackToHome,
+        CloseWeakList,
+        Reveal,
         OpenSettings,
         SaveSettings,
         ResetSettings,
@@ -51,13 +52,13 @@ public class FlowInvalidOperationTests
         [At.Home] = [Op.StartPractice, Op.OpenWeakList, Op.OpenSettings],
         [At.Settings] = [Op.SaveSettings, Op.ResetSettings, Op.CloseSettings],
         [At.SettingsCannotSave] = [Op.ResetSettings, Op.CloseSettings],
-        [At.WeakList] = [Op.ChangeWeakList, Op.StartWeakPractice, Op.BackToHome],
+        [At.WeakList] = [Op.ChangeWeakList, Op.StartWeakPractice, Op.CloseWeakList],
         [At.ResumePrompt] = [Op.Resume, Op.Discard],
         [At.ResumePromptCannotResume] = [Op.Discard],
         [At.Question] = [Op.Answer, Op.Quit],
         [At.FeedbackSaved] = [Op.Next],
         [At.FeedbackUnsaved] = [Op.RetrySave],
-        [At.Result] = [Op.GoHome],
+        [At.Result] = [Op.GoHome, Op.OpenWeakList],
         [At.BothCorrupt] = [Op.StartFresh],
         [At.FatalNewer] = [],
         [At.FatalUnavailable] = [Op.Reload],
@@ -191,7 +192,8 @@ public class FlowInvalidOperationTests
             case Op.OpenWeakList: flow.OpenWeakList(); break;
             case Op.ChangeWeakList: flow.ChangeWeakList(Core.Application.WeakListSort.RecentMistake, true); break;
             case Op.StartWeakPractice: flow.StartWeakPractice(Choices.Auto()); break;
-            case Op.BackToHome: flow.BackToHome(); break;
+            case Op.CloseWeakList: flow.CloseWeakList(); break;
+            case Op.Reveal: flow.Reveal(); break;
             case Op.OpenSettings: flow.OpenSettings(); break;
             case Op.SaveSettings: flow.SaveSettings(Choices.Auto(count: 20)); break;
             case Op.ResetSettings: flow.ResetSettings(); break;

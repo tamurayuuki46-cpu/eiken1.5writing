@@ -20,6 +20,17 @@ public sealed record ModeRecord
 
     public DateTimeOffset? LastWrongAt { get; init; }
 
+    /// <summary>
+    /// <see cref="LastWrongInput"/> を実際に打った日時。null なら LastWrongAt と同じ(旧データ・直近の誤答が実入力のとき)。
+    /// 「答えを見る」で LastWrongAt だけが新しくなったときに、前の実入力の時刻をここに残す(書くのはそのときだけ)。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeOffset? LastWrongInputAt { get; init; }
+
+    /// <summary>実入力の時刻(入力が無ければ null)。</summary>
+    [JsonIgnore]
+    public DateTimeOffset? TypedInputAt => LastWrongInput is null ? null : LastWrongInputAt ?? LastWrongAt;
+
     /// <summary>このモードで最後に出題された日時(通常・再練習の両方)。</summary>
     public DateTimeOffset? LastAskedAt { get; init; }
 

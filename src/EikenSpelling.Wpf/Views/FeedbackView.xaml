@@ -81,6 +81,9 @@
                     </TextBlock.Style>
                 </TextBlock>
 
+                <TextBlock Style="{StaticResource Sub}" FontSize="15" HorizontalAlignment="Center" Margin="0,-8,0,12"
+                           Text="この問題は不正解として記録されます(以前に入力した綴りの記録は変わりません)"
+                           Visibility="{Binding IsRevealed, Converter={StaticResource BoolToVisible}}" />
                 <ItemsControl ItemsSource="{Binding Diff.CorrectLetters}" ItemTemplate="{StaticResource CorrectLetter}" ItemsPanel="{StaticResource Row}"
                               HorizontalAlignment="Center" Focusable="False"
                               FontFamily="{StaticResource WordFont}" FontWeight="Bold" Foreground="{StaticResource Text}"
@@ -99,7 +102,7 @@
                            Visibility="{Binding Diff.MoreText, Converter={StaticResource NotNullToVisible}}" />
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0"
-                            Visibility="{Binding IsCorrect, Converter={StaticResource FalseToVisible}}">
+                            Visibility="{Binding HasInput, Converter={StaticResource BoolToVisible}}">
                     <TextBlock Style="{StaticResource Sub}" FontSize="15" Text="あなたの入力: " VerticalAlignment="Center" />
                     <ItemsControl ItemsSource="{Binding Diff.InputLetters}" ItemTemplate="{StaticResource InputLetter}" ItemsPanel="{StaticResource Row}"
                                   FontFamily="{StaticResource WordFont}" FontSize="18" Foreground="{StaticResource Text}" Focusable="False"

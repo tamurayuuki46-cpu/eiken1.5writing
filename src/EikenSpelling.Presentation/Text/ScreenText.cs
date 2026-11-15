@@ -69,6 +69,80 @@ public static class ScreenText
         _ => throw new ArgumentOutOfRangeException(nameof(reason)),
     };
 
+    /// <summary>後回しで「答えを見る」を選んだ判定の見出し(UI v0.3 S-04)。</summary>
+    public const string RevealedResult = "不正解(答えを表示)";
+
+    /// <summary>結果画面の間違えた単語に添える印。</summary>
+    public const string RevealedMark = "(答えを見た)";
+
+    public const string RevealLabel = "答えを見る";
+
+    public const string RevealHelp = "答えを表示します。この問題は不正解として記録されます";
+
+    public const string BackToResult = "結果へ戻る";
+
+    public const string BackToHome = "ホームへ戻る";
+
+    public const string NoTypedInput = "記録なし";
+
+    public const string NoWeakWordsInList = "苦手な単語はまだありません。";
+
+    public const string NoReviewTargets = "今は復習する単語がありません(苦手な単語も、再確認の日が来た単語もありません)。";
+
+    public const string OpenDetail = "詳細";
+
+    public const string CloseDetail = "閉じる";
+
+    /// <summary>苦手一覧の行の状態。</summary>
+    public static string WeakRowState(LearningState state) => state == LearningState.Weak ? "苦手" : "克服済み";
+
+    public static string NormalMistakes(int count) => $"通常の誤答 {count}回";
+
+    /// <summary>日時の表示(日本時間に直した値)。無ければ「記録なし」。</summary>
+    public static string DateTimeOrNone(DateTimeOffset? at) => at is { } t ? DateTime(t) : NoTypedInput;
+
+    public static string DateTime(DateTimeOffset at) => at.ToString("M月d日 HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>実入力のモードと日時(入力の文字は含めない)。</summary>
+    public static string TypedInputMeta(LearningMode mode, DateTimeOffset? at) =>
+        at is { } t ? $"({ModeName(mode)}・{DateTime(t)})" : $"({ModeName(mode)})";
+
+    /// <summary>苦手一覧の並べ方のボタン(選んでいる方に印)。</summary>
+    public static string SortLabel(WeakListSort sort, bool selected)
+    {
+        var name = sort == WeakListSort.WeakFirst ? "苦手度の順" : "新しい誤答の順";
+        return selected ? $"{name}(選択中)" : name;
+    }
+
+    public static string WeakOnlyToggle(bool weakOnly) => weakOnly ? "すべて表示する" : "苦手だけ表示する";
+
+    /// <summary>苦手一覧から始めた一括復習が0語だった理由(この画面では「苦手のみ」を外せないので、ホームの文言と分ける)。</summary>
+    public static string? WeakListEmptyReason(SelectionEmptyReason reason) => reason switch
+    {
+        SelectionEmptyReason.NoWeakWords => NoReviewTargets,
+        _ => EmptyReason(reason),
+    };
+
+    /// <summary>モード別の1行(通常と再練習を分ける。正答率は通常問題だけ)。</summary>
+    public static string ModeLine(ModeStat s) => s.Accuracy is { } a
+        ? $"{ModeName(s.Mode)}: 正答率 {Math.Round(a * 100)}%(通常 正解{s.NormalCorrect}・誤答{s.NormalWrong} / 再練習 正解{s.RetryCorrect}・誤答{s.RetryWrong})"
+        : $"{ModeName(s.Mode)}: 未学習(再練習 正解{s.RetryCorrect}・誤答{s.RetryWrong})";
+
+    /// <summary>克服・再確認の情報(苦手は克服までの残り、克服済みは再確認日)。</summary>
+    public static string WeakStatus(WeakWordRow row)
+    {
+        if (row.State == LearningState.Weak)
+        {
+            var streak = row.MasteryStreak ?? 0;
+            var required = row.RequiredCorrectDays ?? 0;
+            var today = row.CountedToday == true ? "・今日は対象の正解済み" : "";
+            return $"苦手: 克服まであと{row.RemainingForMastery}日分(連続正答 {streak}/{required}{today})";
+        }
+
+        var next = row.NextReviewDate is { } d ? $"{d:M月d日}" : "予定なし";
+        return row.ReviewDue == true ? $"克服済み: 再確認待ち(予定日 {next})" : $"克服済み: 次の再確認 {next}";
+    }
+
     /// <summary>判定画面の「記録の変化」。変化が無ければ空。</summary>
     public static IReadOnlyList<string> Changes(AnswerChange change)
     {

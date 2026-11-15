@@ -83,6 +83,15 @@ public static class SessionValidator
             return problems;
         }
 
+        // 答えを見るは、後回しにした通常問題への不正解だけ(再練習・通常の段階・正解は不正)
+        var skippedIndexes = session.Skips.Select(s => s.QuestionIndex).ToHashSet();
+        var scoringOrder = session.AnswerOrder;
+        if (session.Answers.Select((a, k) => (Answer: a, Slot: k < scoringOrder.Length ? scoringOrder[k] : -1))
+            .Any(x => x.Answer.Revealed && (x.Answer.IsCorrect || !skippedIndexes.Contains(x.Slot))))
+        {
+            problems.Add("「答えを見る」の採点が、後回しにした通常問題の不正解になっていません。");
+        }
+
         // このセッションの反映済み answerId は、採点済みの枠(採点の順の先頭 Answers.Length 件)とちょうど一致する
         // (ずれると再開後に進めない・記録が飛ぶ。スキップでは増えない)
         var order = session.AnswerOrder;

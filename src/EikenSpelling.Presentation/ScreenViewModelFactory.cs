@@ -18,7 +18,10 @@ internal static class ScreenViewModelFactory
             shell, question, question.SavePending ? (previous as QuestionViewModel)?.Input : null),
         FeedbackScreen feedback => new FeedbackViewModel(
             shell, feedback, shell.LastAnswer ?? throw new InvalidOperationException("判定画面に出す直前の回答の値がありません。")),
-        ResultScreen result => new ResultViewModel(shell, result),
+        // 苦手一覧から戻ったときは「苦手一覧」ボタンにフォーカスを戻す
+        ResultScreen result => new ResultViewModel(shell, result) { ReturnedFromWeakList = previous is WeakListViewModel },
+        // 並べ替え・絞り込みで作り直したときは、開いていた行と押したボタンを引き継ぐ
+        WeakListScreen weakList => new WeakListViewModel(shell, weakList, previous as WeakListViewModel),
         BothCorruptScreen corrupt => new BothCorruptViewModel(shell, corrupt),
         FatalScreen fatal => new FatalViewModel(shell, fatal),
         _ => throw new InvalidOperationException($"この画面にはまだ対応していません: {screen.GetType().Name}"),

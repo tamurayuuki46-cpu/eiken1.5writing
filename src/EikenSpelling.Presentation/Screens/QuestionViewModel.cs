@@ -51,6 +51,7 @@ public sealed class QuestionViewModel : ScreenViewModel
         Phase = screen.Phase;
         PhaseName = ScreenText.PhaseName(screen.Phase);
         CanSkip = screen.CanSkip;
+        CanReveal = screen.CanReveal;
         SaveFailure = screen.SaveFailure;
         Flash = screen.Flash;
         CanAnswer = screen.CanAnswer;
@@ -58,6 +59,8 @@ public sealed class QuestionViewModel : ScreenViewModel
 
         // 後回しにできるかは Flow(Core)が決めた CanSkip だけで決める(画面で判断しない)
         SkipCommand = Command(() => Invoke(flow => flow.Skip()), () => CanSkip && !IsSavePending);
+        // 答えを見るも Flow(Core)が決めた CanReveal だけで決める(後回しの段階だけ。再練習では出ない)
+        RevealCommand = Command(() => Shell.Reveal(this), () => CanReveal && !IsSavePending);
         RetrySaveCommand = Command(() => Invoke(flow => flow.RetrySave()), () => IsSavePending);
         ReplayCommand = Command(Speak, () => IsAudioMode);
         QuitCommand = Command(() =>
@@ -140,6 +143,9 @@ public sealed class QuestionViewModel : ScreenViewModel
     /// <summary>今後回しにできるか(Flow の値。保存待ちの間は偽)。</summary>
     public bool CanSkip { get; }
 
+    /// <summary>「答えを見る」を出せるか(Flow の値。後回しの段階だけ)。</summary>
+    public bool CanReveal { get; }
+
     /// <summary>保存待ち(後回し・フラッシュの表示開始)の文言(Flow)。ある間は「もう一度保存」だけ押せる。</summary>
     public string? SaveFailure { get; }
 
@@ -177,6 +183,9 @@ public sealed class QuestionViewModel : ScreenViewModel
     public RelayCommand QuitCommand { get; }
 
     public RelayCommand SkipCommand { get; }
+
+    /// <summary>後回しの問題の答えを見る(不正解として記録される)。</summary>
+    public RelayCommand RevealCommand { get; }
 
     public RelayCommand RetrySaveCommand { get; }
 

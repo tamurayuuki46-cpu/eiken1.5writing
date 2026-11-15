@@ -51,6 +51,7 @@ public sealed class HomeViewModel : ScreenViewModel
 
         RecommendedCommand = Command(() => Invoke(flow => flow.StartRecommended()));
         ToggleFreeChoiceCommand = Command(() => IsFreeChoiceOpen = !IsFreeChoiceOpen);
+        OpenWeakListCommand = Command(() => Invoke(flow => flow.OpenWeakList()));
         StartCommand = Command(() => Invoke(flow => flow.StartPractice(Choice)), () => SelectedMode.Available);
     }
 
@@ -137,6 +138,9 @@ public sealed class HomeViewModel : ScreenViewModel
 
     /// <summary>おすすめ学習(一操作で開始)。</summary>
     public RelayCommand RecommendedCommand { get; }
+
+    /// <summary>苦手一覧へ(戻るとホームに戻る)。</summary>
+    public RelayCommand OpenWeakListCommand { get; }
 
     /// <summary>自由選択の展開・閉じる。</summary>
     public RelayCommand ToggleFreeChoiceCommand { get; }

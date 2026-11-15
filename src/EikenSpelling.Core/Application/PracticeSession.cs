@@ -17,7 +17,12 @@ public sealed record SessionQuestion(
 /// 採点の1件。Answers[k] は採点の順(<see cref="PracticeSession.AnswerOrder"/>)の k 番目の問題への採点。
 /// 入力は持たない(誤答入力は学習記録に残る)。
 /// </summary>
-public sealed record SessionAnswer(bool IsCorrect, LearningState? StateBefore, LearningState? StateAfter);
+public sealed record SessionAnswer(bool IsCorrect, LearningState? StateBefore, LearningState? StateAfter)
+{
+    /// <summary>後回しで「答えを見る」を選んだ不正解(入力は無い)。通常の回答では書かない。</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Revealed { get; init; }
+}
 
 /// <summary>通常問題のスキップ(後回し)の1件。採点ではないので学習記録には何も残さない。QuestionIndex は通常問題の番号。</summary>
 public sealed record SessionSkip(int QuestionIndex, DateTimeOffset SkippedAt);

@@ -17,7 +17,11 @@ public sealed record SessionAnswerResult(
     bool IsCorrect,
     string CorrectWord,
     AnswerChange Change,
-    bool Completed);
+    bool Completed)
+{
+    /// <summary>後回しの「答えを見る」による不正解(入力は無い)。</summary>
+    public bool Revealed { get; init; }
+}
 
 /// <summary>1回の回答で単語の状態がどう変わったか(画面の表示用)。</summary>
 public sealed record AnswerChange(
@@ -135,30 +139,56 @@ public static class SessionManager
         return session with { FlashShownStep = session.ProcessedSteps };
     }
 
+    /// <summary>今の問題で「答えを見る」を選べるか: 後回しの段階だけ(通常は後回しか回答、再練習は回答だけ)。</summary>
+    public static bool CanReveal(PracticeSession session) => Phase(session) == QuestionPhase.Deferred;
+
     public static SessionAnswerResult Answer(PracticeSession session, LearningProgress progress, string input, DateTimeOffset answeredAt)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        return Score(session, progress, input, answeredAt, revealed: false);
+    }
+
+    /// <summary>
+    /// 後回しの問題で「答えを見る」: 元の通常枠の不正解を1回だけ確定する(入力は作らない。以前の実入力は学習記録に残る)。
+    /// 保存の約束は Answer と同じ(返した学習記録とセッションを保存し、失敗したら同じ値を保存し直す。Reveal をもう一度呼ばない)。
+    /// 後回しの段階以外では InvalidOperationException。
+    /// </summary>
+    public static SessionAnswerResult Reveal(PracticeSession session, LearningProgress progress, DateTimeOffset answeredAt)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (!CanReveal(session))
+        {
+            throw new InvalidOperationException("答えを見られるのは後回しの問題だけです。");
+        }
+
+        return Score(session, progress, "", answeredAt, revealed: true);
+    }
+
+    private static SessionAnswerResult Score(
+        PracticeSession session, LearningProgress progress, string input, DateTimeOffset answeredAt, bool revealed)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(progress);
-        ArgumentNullException.ThrowIfNull(input);
         if (session.CurrentIndex is not { } index)
         {
             throw new InvalidOperationException("このセッションは終わっています。");
         }
 
         var q = session.Questions[index];
-        var correct = SpellingJudge.IsCorrect(q.Word, input);
+        var correct = !revealed && SpellingJudge.IsCorrect(q.Word, input);
 
         // answerId は元の問題の番号(後回しで答えても通常枠の ID のまま)
         var recorded = AnswerRecorder.Apply(
             progress,
-            new AnswerEvent(new AnswerId(session.SessionId, index, q.Attempt), q.WordId, q.Mode, correct, input, answeredAt),
+            new AnswerEvent(
+                new AnswerId(session.SessionId, index, q.Attempt), q.WordId, q.Mode, correct, revealed ? null : input, answeredAt, revealed),
             session.Settings);
         if (recorded.IsDuplicate)
         {
             throw new InvalidOperationException("この回答は学習記録に反映済みです(セッションと学習記録が食い違っています)。");
         }
 
-        var answers = session.Answers.Add(new SessionAnswer(correct, recorded.StateBefore, recorded.StateAfter));
+        var answers = session.Answers.Add(new SessionAnswer(correct, recorded.StateBefore, recorded.StateAfter) { Revealed = revealed });
         var updated = session with
         {
             Answers = answers,
@@ -168,7 +198,7 @@ public static class SessionManager
         var newProgress = completed ? RemoveSession(recorded.Progress, session.SessionId) : recorded.Progress;
         var change = new AnswerChange(
             recorded.StateBefore, recorded.StateAfter, recorded.BecameMastered, recorded.ReturnedToWeak, recorded.ReviewAdvanced);
-        return new SessionAnswerResult(updated, completed ? null : updated, newProgress, correct, q.Word, change, completed);
+        return new SessionAnswerResult(updated, completed ? null : updated, newProgress, correct, q.Word, change, completed) { Revealed = revealed };
     }
 
     /// <summary>途中でやめる。回答済みの記録は残し、そのセッションの answerId を消した学習記録を返す。</summary>

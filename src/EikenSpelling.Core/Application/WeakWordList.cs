@@ -19,9 +19,14 @@ public enum WeakListSort
 /// <summary>モード別の通常問題の正答率。通常問題で未出題は null(画面では「未学習」。v1.0 11.3)。</summary>
 public sealed record ModeAccuracy(double? Japanese, double? Audio, double? Blank, double? Flash);
 
+/// <summary>モード別の状態(行の展開に出す)。通常と再練習の件数を分ける。Accuracy は通常問題だけ(未出題は null)。</summary>
+public sealed record ModeStat(LearningMode Mode, int NormalCorrect, int NormalWrong, int RetryCorrect, int RetryWrong, double? Accuracy);
+
 /// <summary>
 /// 苦手一覧の1行(v1.0 11.4)。苦手の項目(連続正答〜苦手度)は克服済みでは null、克服済みの項目(再確認日・再確認待ち)は苦手では null。
-/// LastWrongInput は利用者が打った文字列(表示用)。ログに出さないこと(ToString では伏せる)。LastWrongAt は日本時間(直せない日時は null)。
+/// LastWrongInput は利用者が実際に打った最新の誤答(表示用。「答えを見る」は入力を作らないので、その不正解が新しくても前の入力のまま。
+/// 無ければ null)。ログに出さないこと(ToString では伏せる)。モードと時刻は LastWrongInputMode・LastWrongInputAt。
+/// LastWrongAt は最後の誤答(答えを見るを含む)の日本時間(直せない日時は null)。実入力の時刻とは別。
 /// </summary>
 public sealed record WeakWordRow(
     string WordId,
@@ -40,6 +45,15 @@ public sealed record WeakWordRow(
     DateOnly? NextReviewDate,
     bool? ReviewDue)
 {
+    /// <summary>実入力のモード(LastWrongInput が無ければ null)。</summary>
+    public LearningMode? LastWrongInputMode { get; init; }
+
+    /// <summary>実入力の日時(日本時間。LastWrongInput が無い・直せない日時は null)。</summary>
+    public DateTimeOffset? LastWrongInputAt { get; init; }
+
+    /// <summary>モード別の状態(日本語・音声・穴あき・フラッシュの順にすべて)。</summary>
+    public ImmutableArray<ModeStat> Modes { get; init; } = [];
+
     public override string ToString() => $"WeakWordRow {{ WordId = {WordId}, State = {State}, NormalMistakes = {NormalMistakes} }}";
 }
 
@@ -89,6 +103,7 @@ public static class WeakWordList
         var inSet = spellings.TryGetValue(w.WordId, out var spelling);
         var isWeak = w.State == LearningState.Weak;
         var required = settings.Mastery.RequiredCorrectDays;
+        var typed = LatestMistake.TypedInputOf(w);
         return new WeakWordRow(
             w.WordId,
             inSet ? spelling! : w.WordId,
@@ -100,7 +115,7 @@ public static class WeakWordList
                 w.Mode(LearningMode.Audio).Accuracy,
                 w.Mode(LearningMode.Blank).Accuracy,
                 w.Mode(LearningMode.Flash).Accuracy),
-            InputRules.TruncateForStorage(last?.Input),
+            InputRules.TruncateForStorage(typed?.Input),
             last is null ? null : JstClock.TryToJst(last.At),
             isWeak ? w.MasteryStreak : null,
             isWeak ? required : null,
@@ -109,6 +124,14 @@ public static class WeakWordList
             isWeak ? MasteryRules.CountedToday(w, today) : null,
             isWeak ? WeakWordScorer.Score(w, settings, now) : null,
             isWeak ? null : w.NextReviewDate,
-            isWeak ? null : ReviewScheduler.IsDue(w, today));
+            isWeak ? null : ReviewScheduler.IsDue(w, today))
+        {
+            LastWrongInputMode = typed?.Mode,
+            LastWrongInputAt = typed is null ? null : JstClock.TryToJst(typed.At),
+            Modes = [.. Enum.GetValues<LearningMode>().Select(mode => ToStat(mode, w.Mode(mode)))],
+        };
     }
+
+    private static ModeStat ToStat(LearningMode mode, ModeRecord r) =>
+        new(mode, r.NormalCorrect, r.NormalWrong, r.RetryCorrect, r.RetryWrong, r.Accuracy);
 }
