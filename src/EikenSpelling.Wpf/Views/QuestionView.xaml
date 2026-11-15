@@ -12,10 +12,12 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
             <StackPanel MaxWidth="760" Margin="24,16,24,24">
                 <DockPanel Margin="0,0,0,4">
-                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Sub}" FontSize="14">
-                        <Run Text="{Binding Number, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding Total, Mode=OneWay}" />
-                    </TextBlock>
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Sub}" FontSize="14" Text="{Binding ProgressText}" />
                     <StackPanel Orientation="Horizontal">
+                        <Border Background="{StaticResource Border}" CornerRadius="6" Padding="10,2" Margin="0,0,10,0"
+                                Visibility="{Binding IsDeferred, Converter={StaticResource BoolToVisible}}">
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14" FontWeight="Bold" Text="{Binding PhaseName}" />
+                        </Border>
                         <Border Background="{StaticResource MistakeSofter}" CornerRadius="6" Padding="10,2" Margin="0,0,10,0"
                                 Visibility="{Binding IsRetry, Converter={StaticResource BoolToVisible}}">
                             <TextBlock Style="{StaticResource Sub}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource MistakeText}" Text="再練習" />
@@ -25,6 +27,18 @@
                 </DockPanel>
                 <TextBlock Style="{StaticResource Sub}" HorizontalAlignment="Right" Text="{Binding RetryNote}"
                            Visibility="{Binding RetryNote, Converter={StaticResource NotNullToVisible}}" />
+
+                <!-- 後回しの保存失敗の警告の帯(保存できるまで回答・後回し・やめるは押せない) -->
+                <Border Style="{StaticResource WarnBand}" Margin="0,12,0,0"
+                        Visibility="{Binding SkipSaveFailure, Converter={StaticResource NotNullToVisible}}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Body}" FontWeight="Bold" Foreground="{StaticResource DangerText}" Text="⚠ 後回しを保存できませんでした" />
+                        <TextBlock Style="{StaticResource Body}" FontSize="14" Foreground="{StaticResource DangerText}" TextWrapping="Wrap" Text="{Binding SkipSaveFailure}" />
+                        <Button x:Name="RetrySaveButton" Style="{StaticResource PrimaryButton}" Content="もう一度保存" HorizontalAlignment="Left" Margin="0,10,0,0"
+                                AutomationProperties.HelpText="後回しを保存できませんでした"
+                                Command="{Binding RetrySaveCommand}" />
+                    </StackPanel>
+                </Border>
 
                 <!-- 問題: 日本語は意味、穴あきは穴あき表示と文字数 -->
                 <StackPanel Margin="0,48,0,32" HorizontalAlignment="Center">
@@ -51,9 +65,13 @@
                     </TextBox>
                     <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,0" Text="英単語を入力してください"
                                Visibility="{Binding IsInputBlank, Converter={StaticResource BoolToVisible}}" />
-                    <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="Enter で回答 ・ Esc でやめる" />
+                    <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{Binding KeyHint}" />
                     <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
                         <Button Style="{StaticResource PrimaryButton}" Content="回答" Command="{Binding AnswerCommand}" Margin="0,0,12,0" />
+                        <Button Style="{StaticResource SecondaryButton}" Content="後回し" Command="{Binding SkipCommand}" Margin="0,0,12,0"
+                                ToolTip="採点せずに後回しにします(通常問題を一巡した後にもう一度出ます)"
+                                AutomationProperties.HelpText="採点せずに後回しにします"
+                                Visibility="{Binding IsNormalPhase, Converter={StaticResource BoolToVisible}}" />
                         <Button Style="{StaticResource SecondaryButton}" Content="やめる" Command="{Binding QuitCommand}" />
                     </StackPanel>
                 </StackPanel>

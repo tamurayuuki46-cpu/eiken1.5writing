@@ -122,8 +122,8 @@ public class FlowPracticeTests
         var retry = flow.As<QuestionScreen>();
         Assert.True(retry.Question.IsRetry);
         Assert.Equal(first, retry.Question.WordId);
-        Assert.Equal(3, retry.Number);
-        Assert.Equal(3, retry.Total);
+        Assert.Equal(1, retry.Number); // 再練習の1問目(UI v0.3 段階別の進捗表示)
+        Assert.Equal(1, retry.Total);  // 残り(今の問題を含む)
         flow.AnswerCurrent(true);
         flow.Next();
         var summary = flow.As<ResultScreen>().Summary;

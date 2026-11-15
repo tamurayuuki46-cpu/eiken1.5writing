@@ -11,6 +11,12 @@ public interface IFileOperations
 
     string ReadAllText(string path);
 
+    /// <summary>原本のバイト列をそのまま読む(旧版の記録の保護コピー用)。</summary>
+    byte[] ReadAllBytes(string path);
+
+    /// <summary>バイト列をそのまま書き、ディスクまで書き出す(Flush(true))。既存のファイルは上書き。</summary>
+    void WriteBytesAndFlush(string path, byte[] content);
+
     /// <summary>UTF-8(BOM なし)で書き、ディスクまで書き出す(Flush(true))。既存のファイルは上書き。</summary>
     void WriteAndFlush(string path, string content);
 
@@ -38,11 +44,14 @@ public sealed class SystemFileOperations : IFileOperations
 
     public string ReadAllText(string path) => File.ReadAllText(path, Encoding.UTF8);
 
-    public void WriteAndFlush(string path, string content)
+    public byte[] ReadAllBytes(string path) => File.ReadAllBytes(path);
+
+    public void WriteAndFlush(string path, string content) => WriteBytesAndFlush(path, Utf8NoBom.GetBytes(content));
+
+    public void WriteBytesAndFlush(string path, byte[] content)
     {
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-        var bytes = Utf8NoBom.GetBytes(content);
-        stream.Write(bytes, 0, bytes.Length);
+        stream.Write(content, 0, content.Length);
         stream.Flush(flushToDisk: true);
     }
 

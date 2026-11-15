@@ -80,10 +80,22 @@ internal sealed class FaultyFileOperations : IFileOperations
         return _inner.ReadAllText(path);
     }
 
+    public byte[] ReadAllBytes(string path)
+    {
+        Hit(nameof(ReadAllBytes));
+        return _inner.ReadAllBytes(path);
+    }
+
     public void WriteAndFlush(string path, string content)
     {
         Hit(nameof(WriteAndFlush));
         _inner.WriteAndFlush(path, content);
+    }
+
+    public void WriteBytesAndFlush(string path, byte[] content)
+    {
+        Hit(nameof(WriteBytesAndFlush));
+        _inner.WriteBytesAndFlush(path, content);
     }
 
     public void Replace(string source, string destination, string backup)

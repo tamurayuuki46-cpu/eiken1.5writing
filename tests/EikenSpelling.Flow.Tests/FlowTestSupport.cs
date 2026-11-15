@@ -29,6 +29,9 @@ internal sealed class SwitchableFiles : IFileOperations
     public string ReadAllText(string path) =>
         FailReadsOf.Contains(Path.GetFileName(path)) ? throw new IOException("読めない(テスト)") : _inner.ReadAllText(path);
 
+    public byte[] ReadAllBytes(string path) =>
+        FailReadsOf.Contains(Path.GetFileName(path)) ? throw new IOException("読めない(テスト)") : _inner.ReadAllBytes(path);
+
     public void WriteAndFlush(string path, string content)
     {
         Writes++;
@@ -38,6 +41,17 @@ internal sealed class SwitchableFiles : IFileOperations
         }
 
         _inner.WriteAndFlush(path, content);
+    }
+
+    public void WriteBytesAndFlush(string path, byte[] content)
+    {
+        Writes++;
+        if (FailWrites)
+        {
+            throw new IOException("書けない(テスト)");
+        }
+
+        _inner.WriteBytesAndFlush(path, content);
     }
 
     public void Replace(string source, string destination, string backup) => _inner.Replace(source, destination, backup);

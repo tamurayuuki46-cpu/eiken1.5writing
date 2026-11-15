@@ -20,6 +20,7 @@ public sealed class ProgressRepository
     private readonly AtomicJsonFile<ProgressDocument> _file;
     private readonly IFileOperations _files;
     private readonly TimeProvider _time;
+    private readonly LegacyOriginalProtection _protection;
     private LearningSettings _settings = DefaultSettings.Create();
     private LoadStatus? _state;
 
@@ -31,7 +32,14 @@ public sealed class ProgressRepository
         _time = time ?? TimeProvider.System;
         _files = files ?? SystemFileOperations.Instance;
         _file = new AtomicJsonFile<ProgressDocument>(directory, FileName, Read, _files, _time, retryDelay);
+        _protection = new LegacyOriginalProtection(_files, _file.Directory, _file.MainPath, _file.BackupPath);
     }
+
+    /// <summary>旧版(v1)の主ファイルの保護コピーの場所(最初の v2 保存の前に作る。通常の読込では使わない)。</summary>
+    public string ProtectedV1MainPath => _protection.ProtectedMainPath;
+
+    /// <summary>旧版(v1)の bak の保護コピーの場所(保存の前に bak があったときだけ作る)。</summary>
+    public string ProtectedV1BackupPath => _protection.ProtectedBackupPath;
 
     public ProgressLoadResult Load(LearningSettings settings)
     {
@@ -81,6 +89,8 @@ public sealed class ProgressRepository
             return SaveResult.Failure("途中の練習の内容が正しくないため、保存していません。");
         }
 
+        // 保存は常に今の版(v1 を読んだ文書でも。台帳を知らない古いアプリに上書きさせないため)
+        document = document with { SchemaVersion = ProgressDocument.CurrentSchemaVersion };
         string json;
         try
         {
@@ -91,8 +101,19 @@ public sealed class ProgressRepository
             return SaveResult.Failure("学習記録を保存用の形に変換できませんでした。");
         }
 
+        // 主が旧版なら、置き換える前に主と bak の原本を保護する(できなければ書かない)
+        if (_protection.EnsureProtected() is { } protectionProblem)
+        {
+            return SaveResult.Failure(protectionProblem);
+        }
+
         var result = _file.Save(json);
         _discarded.Clear(); // 保存の読み戻しで記録された分は使わない
+        if (result.Succeeded)
+        {
+            _protection.MarkSaved();
+        }
+
         return result;
     }
 

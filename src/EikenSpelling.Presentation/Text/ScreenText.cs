@@ -20,6 +20,25 @@ public static class ScreenText
 
     public const string AutoMix = "自動ミックス";
 
+    /// <summary>
+    /// 段階別の進み具合の1行(UI v0.3 FA)。通常・後回しは「通常:全5問中の2問目」、再練習は「再練習2問目・残り1問」
+    /// (total は再練習では今の問題を含む残り)。正解の文字を含まないのでスクリーンリーダー用の名前にも使える。
+    /// </summary>
+    public static string ProgressText(QuestionPhase phase, int number, int total) => phase switch
+    {
+        QuestionPhase.Retry => $"再練習{number}問目・残り{total}問",
+        _ => $"{PhaseName(phase)}:全{total}問中の{number}問目",
+    };
+
+    /// <summary>出題の段階の名前(UI v0.3 段階別の進捗表示)。</summary>
+    public static string PhaseName(QuestionPhase phase) => phase switch
+    {
+        QuestionPhase.Normal => "通常",
+        QuestionPhase.Deferred => "後回し",
+        QuestionPhase.Retry => "再練習",
+        _ => throw new ArgumentOutOfRangeException(nameof(phase)),
+    };
+
     /// <summary>端末で使えない手動モード(保存済みの値を出すときだけ)。</summary>
     public static string UnavailableMode(LearningMode mode) => $"{ModeName(mode)}(この端末では使えません)";
 

@@ -15,8 +15,15 @@ public partial class QuestionView : UserControl, IInitialFocus
         DataObject.AddPastingHandler(AnswerBox, OnPasting);
     }
 
+    /// <summary>ふだんは回答欄、後回しの保存失敗中は「もう一度保存」(回答欄は打ちかけの入力を残すが送れない)。</summary>
     public void FocusInitial()
     {
+        if (DataContext is QuestionViewModel { IsSkipSavePending: true })
+        {
+            RetrySaveButton.Focus();
+            return;
+        }
+
         AnswerBox.Focus();
         AnswerBox.CaretIndex = AnswerBox.Text.Length;
     }
