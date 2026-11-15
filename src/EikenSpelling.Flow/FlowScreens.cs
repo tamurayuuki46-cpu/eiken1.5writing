@@ -35,6 +35,12 @@ public sealed record HomeScreen(
 
     /// <summary>フラッシュの表示秒数の選択肢(今の設定の FlashSecondsChoices)。自由選択で使う。</summary>
     public ImmutableArray<double> FlashSecondsChoices { get; init; } = [];
+
+    /// <summary>警告ではない知らせ(設定の保存の成功など)。Message は開始の失敗(警告)。</summary>
+    public string? Info { get; init; }
+
+    /// <summary>今日の目標と実績(UI v0.3 S-10)。ホームを作るたびに端末のローカル日付で求める。</summary>
+    public DailyProgress Today { get; init; } = new(default, 0, 0);
 }
 
 /// <summary>
@@ -83,6 +89,12 @@ public sealed record SettingsScreen(
     string? Message = null) : FlowScreen
 {
     public ImmutableArray<SettingsIssue> Issues { get; init; } = [];
+
+    /// <summary>1日の目標(画面の値。1回の練習の出題数とは別)。</summary>
+    public int DailyGoal { get; init; }
+
+    /// <summary>1日の目標の選択肢(今の設定の DailyQuestionGoalChoices)。</summary>
+    public ImmutableArray<int> DailyGoalChoices { get; init; } = [];
 }
 
 /// <summary>語彙セットから始めた練習の文脈(開始時のセットの単位・番号・総数)。WordSetUpdated は、それ以後に単語データが更新されたこと。</summary>
@@ -98,10 +110,31 @@ public sealed record ResumeSummary(DateTimeOffset StartedAt, int Answered, int T
     public int Skipped { get; init; }
 
     public ResumeSetContext? Set { get; init; }
+
+    /// <summary>今の列でまだ採点していない問題の数(後回し・列に入った再練習を含む)。</summary>
+    public int Remaining { get; init; }
+
+    /// <summary>通常問題の採点がまだ残り、誤答すると再練習が列に加わりうるか。</summary>
+    public bool MayAddRetries { get; init; }
+
+    /// <summary>どの練習か(開始時の条件): 自動ミックス / 手動のモード / 苦手のみ / 通常問題の数。</summary>
+    public bool AutoMix { get; init; }
+
+    public LearningMode ManualMode { get; init; }
+
+    public bool WeakOnly { get; init; }
+
+    public int NormalCount { get; init; }
 }
 
-/// <summary>未完了の練習がある。CanResume が偽なら「終了して新しく始める」だけ選べる。</summary>
-public sealed record ResumePromptScreen(ResumeSummary Session, bool CanResume, string? CannotResumeReason, string? Message = null) : FlowScreen;
+/// <summary>
+/// 未完了の練習がある。CanResume が偽なら「終了して新しく始める」だけ選べる。
+/// Today は今日の目標と実績(再開の操作だけでは増えない)。
+/// </summary>
+public sealed record ResumePromptScreen(ResumeSummary Session, bool CanResume, string? CannotResumeReason, string? Message = null) : FlowScreen
+{
+    public DailyProgress Today { get; init; } = new(default, 0, 0);
+}
 
 /// <summary>出題する問題。Japanese・Blanks は今の単語データから引く。</summary>
 public sealed record QuestionView(string WordId, string Word, LearningMode Mode, string Japanese, string? Blanks, bool IsRetry)

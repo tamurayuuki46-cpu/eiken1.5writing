@@ -11,18 +11,21 @@
                 </TextBlock>
             </Border>
 
+            <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,6" Text="{Binding KindText}" />
             <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,6" Text="{Binding SetText}"
                        Visibility="{Binding SetText, Converter={StaticResource NotNullToVisible}}" />
-            <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" Margin="0,0,0,12" Text="{Binding PhaseText}"
+            <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" Margin="0,0,0,6" Text="{Binding PhaseText}"
                        Visibility="{Binding PhaseText, Converter={StaticResource NotNullToVisible}}" />
+            <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" FontWeight="Bold" Margin="0,0,0,6" Text="{Binding RemainingText}" />
+            <TextBlock Style="{StaticResource Sub}" HorizontalAlignment="Center" Margin="0,0,0,12" Text="{Binding TodayText}" />
             <Border Style="{StaticResource InfoBand}" Margin="0,0,0,16" Visibility="{Binding SetUpdatedNote, Converter={StaticResource NotNullToVisible}}">
                 <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding SetUpdatedNote}" />
             </Border>
             <Border Style="{StaticResource InfoBand}" Margin="0,0,0,16" Visibility="{Binding CannotResumeReason, Converter={StaticResource NotNullToVisible}}">
-                <TextBlock Style="{StaticResource Body}" Text="{Binding CannotResumeReason}" />
+                <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding CannotResumeReason}" />
             </Border>
             <Border Style="{StaticResource WarnBand}" Margin="0,0,0,16" Visibility="{Binding Message, Converter={StaticResource NotNullToVisible}}">
-                <TextBlock Style="{StaticResource Body}" Foreground="{StaticResource DangerText}" Text="{Binding Message, StringFormat=⚠ {0}}" />
+                <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Foreground="{StaticResource DangerText}" Text="{Binding Message, StringFormat=⚠ {0}}" />
             </Border>
 
             <Button x:Name="ResumeButton" Style="{StaticResource PrimaryButton}" Width="340" MinHeight="60" FontSize="20" Margin="0,0,0,12"

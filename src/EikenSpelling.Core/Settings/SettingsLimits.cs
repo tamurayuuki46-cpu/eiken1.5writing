@@ -17,4 +17,6 @@ public static class SettingsLimits
     public const double MaxFlashSeconds = 10.0;
 
     public const int MaxReviewIntervalDays = 3650;
+
+    public const int MaxDailyGoal = 500;
 }

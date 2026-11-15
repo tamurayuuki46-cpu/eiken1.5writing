@@ -77,6 +77,11 @@ public static class ProgressJson
             }
         }
 
+        if (document.Progress.Daily is null || document.Progress.Daily.Days.IsDefault || document.Progress.Daily.Days.Any(d => d is null))
+        {
+            throw new InvalidDataException("学習記録の日別実績に空(null)の値があります。");
+        }
+
         var (session, unreadable) = ReadSession(sessionNode);
         return new ParsedProgress(
             document with

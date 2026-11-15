@@ -3,6 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
         <StackPanel MaxWidth="760" Margin="24,20,24,24">
+            <!-- 今日の目標と実績(UI v0.3 S-10)。記録なしは「0問」と区別して出す -->
+            <Border x:Name="TodayCard" Style="{StaticResource Card}" Margin="0,0,0,16" Padding="16,10">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Body}" FontSize="22" FontWeight="Bold" Text="{Binding TodayText}" Margin="0,0,16,0" VerticalAlignment="Center" />
+                    <TextBlock Style="{StaticResource Sub}" Text="{Binding TodayNote}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
             <TextBlock Style="{StaticResource Sub}" FontWeight="Bold" Text="学習状況" Margin="0,0,0,8" />
             <UniformGrid Columns="5" Margin="0,0,0,24">
                 <Border Style="{StaticResource Card}" Margin="0,0,5,0">
@@ -39,6 +47,9 @@
 
             <TextBlock Style="{StaticResource Heading}" Text="今日の練習" HorizontalAlignment="Center" Margin="0,0,0,16" />
 
+            <Border Style="{StaticResource InfoBand}" Margin="0,0,0,12" Visibility="{Binding SavedMessage, Converter={StaticResource NotNullToVisible}}">
+                <TextBlock x:Name="SavedText" Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding SavedMessage}" AutomationProperties.LiveSetting="Polite" />
+            </Border>
             <Border Style="{StaticResource InfoBand}" Margin="0,0,0,12" Visibility="{Binding InfoMessage, Converter={StaticResource NotNullToVisible}}">
                 <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding InfoMessage}" />
             </Border>
@@ -72,10 +83,14 @@
                 <Button x:Name="WeakListButton" Style="{StaticResource LinkButton}" Content="苦手一覧を見る" Margin="0,0,16,0"
                         Command="{Binding OpenWeakListCommand}"
                         AutomationProperties.HelpText="間違えた綴りと苦手の状態を見ます。戻るとホームに戻ります" />
-                <Button x:Name="VocabularySetsButton" Style="{StaticResource LinkButton}" Content="語彙セット"
+                <Button x:Name="VocabularySetsButton" Style="{StaticResource LinkButton}" Content="語彙セット" Margin="0,0,16,0"
                         Command="{Binding OpenVocabularySetsCommand}"
                         AutomationProperties.Name="語彙セット"
                         AutomationProperties.HelpText="50語・100語のセットを見て、選んだセットの語だけで練習を始めます" />
+                <Button x:Name="SettingsButton" Style="{StaticResource LinkButton}" Content="設定"
+                        Command="{Binding OpenSettingsCommand}"
+                        AutomationProperties.Name="設定"
+                        AutomationProperties.HelpText="保存する基本設定と1日の目標を変えます" />
             </StackPanel>
 
             <!-- 自由選択(ホーム内に展開。今回だけ。基本設定には書き戻さない) -->

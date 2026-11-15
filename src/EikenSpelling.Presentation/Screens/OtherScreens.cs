@@ -68,6 +68,10 @@ public sealed class ResumePromptViewModel : ScreenViewModel
         SetText = screen.Session.Set is { } set ? ScreenText.ResumeSetText(set.UnitSize, set.Number, set.Total) : null;
         // 再開できないとき(理由が出るとき)は「続けられます」とは言わない
         SetUpdatedNote = screen.CanResume && screen.Session.Set is { WordSetUpdated: true } ? ScreenText.ResumeSetUpdated : null;
+        var s = screen.Session;
+        KindText = ScreenText.ResumeKindText(s.AutoMix, s.ManualMode, s.WeakOnly, s.NormalCount);
+        RemainingText = ScreenText.ResumeRemainingText(s.Remaining, s.MayAddRetries);
+        TodayText = ScreenText.TodayText(screen.Today);
         CanResume = screen.CanResume;
         CannotResumeReason = screen.CannotResumeReason;
         Message = screen.Message;
@@ -89,6 +93,15 @@ public sealed class ResumePromptViewModel : ScreenViewModel
 
     /// <summary>始めた後に単語データが更新されたときの案内(再抽選しないこと)。</summary>
     public string? SetUpdatedNote { get; }
+
+    /// <summary>どの練習か(「自動ミックス・通常10問の練習」など)。</summary>
+    public string KindText { get; }
+
+    /// <summary>残りの問題数(「残り 3問(誤答すると再練習が加わります)」)。</summary>
+    public string RemainingText { get; }
+
+    /// <summary>今日の実績(再開の操作だけでは増えない)。</summary>
+    public string TodayText { get; }
 
     public bool CanResume { get; }
 

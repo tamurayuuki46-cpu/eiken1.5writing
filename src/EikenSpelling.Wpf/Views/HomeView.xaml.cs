@@ -16,6 +16,9 @@ public partial class HomeView : UserControl, IInitialFocus
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+
+        // 設定の保存の成功をナレーターに知らせる(フォーカスは「おすすめ学習」に移るため、帯は読まれない)
+        Loaded += (_, _) => LiveRegion.Announce(SavedText, _viewModel?.SavedMessage is not null);
     }
 
     public void FocusInitial()

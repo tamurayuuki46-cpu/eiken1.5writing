@@ -24,6 +24,7 @@ public static class LearningSettingsJson
         settings.Practice is null || settings.Mastery is null || settings.Vocabulary is null || settings.WeakWordScore is null
         || settings.Practice.ModeWeights is null || settings.Practice.QuestionCountChoices is null || settings.Practice.FlashSecondsChoices is null
         || settings.Mastery.ReviewIntervalsDays is null || settings.Mastery.ReviewLimits is null || settings.Vocabulary.EnabledSources is null
+        || settings.Goal is null || settings.Goal.DailyQuestionGoalChoices is null
         || settings.Mastery.ReviewLimits.Any(l => l is null) || settings.Vocabulary.EnabledSources.Any(s => s is null);
 
     /// <summary>全体を変換する前に settingsVersion だけを読む。無ければ null(初期値の版として扱う)。</summary>

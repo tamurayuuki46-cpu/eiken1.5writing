@@ -120,7 +120,7 @@ public sealed partial class PracticeFlow
     {
         ArgumentNullException.ThrowIfNull(input);
         Require<QuestionScreen>(s => s.CanAnswer);
-        var result = SessionManager.Answer(_document.Session!, _document.Progress, input, _options.Time.GetUtcNow());
+        var result = SessionManager.Answer(_document.Session!, _document.Progress, input, GradedAt());
         Complete(result, input);
     }
 
@@ -247,7 +247,18 @@ public sealed partial class PracticeFlow
             Defaults = _editor.Defaults,
             QuestionCountChoices = [.. _editor.Current.Practice.QuestionCountChoices],
             FlashSecondsChoices = [.. _editor.Current.Practice.FlashSecondsChoices],
+            Today = Today(),
         };
+
+    /// <summary>
+    /// 採点の時刻(端末のローカル時刻)。日別の実績はこのオフセットの日付で数える(2026-11-15 本人確定)。
+    /// 文書に入るので、保存失敗の再保存の時刻で別の日に移らない。
+    /// </summary>
+    private DateTimeOffset GradedAt() => _options.Time.GetLocalNow();
+
+    /// <summary>今日の目標と実績(端末のローカル日付。画面を作るたびに求めるので、日をまたいでも戻れば当日の値)。</summary>
+    private DailyProgress Today() =>
+        DailyProgress.From(_document.Progress, DailyActivity.DayOf(_options.Time.GetLocalNow()), _editor.Current.Goal.DailyQuestionGoal);
 
     private ResumePromptScreen ResumePrompt(PracticeSession session)
     {
@@ -259,8 +270,16 @@ public sealed partial class PracticeFlow
             Set = session.Scope is { } scope
                 ? new ResumeSetContext(scope.UnitSize, scope.Number, scope.TotalSets, scope.WordSetVersion != _wordSet!.WordSetVersion)
                 : null,
+            Remaining = session.Questions.Length - session.Answers.Length,
+            // 通常問題が残っていれば誤答で再練習が加わる。再練習の段階でも、2回目以降の再練習がありうる設定なら加わる
+            MayAddRetries = (session.Answers.Length < session.NormalCount && session.Settings.Practice.RetryCount > 0)
+                || (SessionManager.Phase(session) == QuestionPhase.Retry && session.Settings.Practice.RetryCount > 1),
+            AutoMix = session.Settings.Practice.AutoMix,
+            ManualMode = session.Settings.Practice.ManualMode,
+            WeakOnly = session.Settings.Practice.WeakWordsOnly,
+            NormalCount = session.NormalCount,
         };
-        return new ResumePromptScreen(summary, reason is null, reason);
+        return new ResumePromptScreen(summary, reason is null, reason) { Today = Today() };
     }
 
     private SaveResult Save(ProgressDocument document) => _repository!.Save(WithVersions(document));

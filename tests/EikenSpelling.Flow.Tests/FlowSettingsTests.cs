@@ -69,7 +69,8 @@ public class FlowSettingsTests
 
         var home = flow.As<HomeScreen>();
         Assert.Equal(values, home.Defaults);
-        Assert.NotNull(home.Message);
+        Assert.NotNull(home.Info); // 保存の成功は警告(Message)ではなく知らせ(Info)
+        Assert.Null(home.Message);
         Assert.Equal(values, FromSettings(FileSettings(env)));
         Assert.Equal(values, env.Start().As<HomeScreen>().Defaults);
 

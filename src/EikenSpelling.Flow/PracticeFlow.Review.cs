@@ -20,7 +20,7 @@ public sealed partial class PracticeFlow
     public void Reveal()
     {
         Require<QuestionScreen>(s => s.CanReveal && !s.SavePending);
-        Complete(SessionManager.Reveal(_document.Session!, _document.Progress, _options.Time.GetUtcNow()), input: null);
+        Complete(SessionManager.Reveal(_document.Session!, _document.Progress, GradedAt()), input: null);
     }
 
     /// <summary>ホームまたは結果から苦手一覧へ。何も書かない。結果から開いたら、戻るでその結果に戻る。</summary>

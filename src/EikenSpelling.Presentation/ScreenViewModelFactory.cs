@@ -25,6 +25,7 @@ internal static class ScreenViewModelFactory
         // ページ送り・単位切替で作り直したときは、選んでいた開始条件と押したボタンを引き継ぐ
         VocabularySetScreen set => new VocabularySetViewModel(shell, set, previous as VocabularySetViewModel, previous is SetStartPreviewViewModel),
         SetStartPreviewScreen preview => new SetStartPreviewViewModel(shell, preview),
+        SettingsScreen settings => new SettingsViewModel(shell, settings),
         BothCorruptScreen corrupt => new BothCorruptViewModel(shell, corrupt),
         FatalScreen fatal => new FatalViewModel(shell, fatal),
         _ => throw new InvalidOperationException($"この画面にはまだ対応していません: {screen.GetType().Name}"),

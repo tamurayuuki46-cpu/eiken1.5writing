@@ -43,6 +43,9 @@ public static class AnswerRecorder
         {
             Words = progress.Words.SetItem(answer.WordId, after),
             AppliedAnswerIds = progress.AppliedAnswerIds.Add(answer.Id),
+
+            // 日別の実績はここだけで足す: 通常枠(後回しでの回答・答えを見るを含む)の採点を1回。再練習は数えない
+            Daily = isRetry ? progress.Daily : progress.Daily.Count(DailyActivity.DayOf(answer.AnsweredAt)),
         };
 
         var before = existing?.State;
