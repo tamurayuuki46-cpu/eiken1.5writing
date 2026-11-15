@@ -22,6 +22,9 @@ internal static class ScreenViewModelFactory
         ResultScreen result => new ResultViewModel(shell, result) { ReturnedFromWeakList = previous is WeakListViewModel },
         // 並べ替え・絞り込みで作り直したときは、開いていた行と押したボタンを引き継ぐ
         WeakListScreen weakList => new WeakListViewModel(shell, weakList, previous as WeakListViewModel),
+        // ページ送り・単位切替で作り直したときは、選んでいた開始条件と押したボタンを引き継ぐ
+        VocabularySetScreen set => new VocabularySetViewModel(shell, set, previous as VocabularySetViewModel, previous is SetStartPreviewViewModel),
+        SetStartPreviewScreen preview => new SetStartPreviewViewModel(shell, preview),
         BothCorruptScreen corrupt => new BothCorruptViewModel(shell, corrupt),
         FatalScreen fatal => new FatalViewModel(shell, fatal),
         _ => throw new InvalidOperationException($"この画面にはまだ対応していません: {screen.GetType().Name}"),

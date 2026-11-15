@@ -15,6 +15,9 @@ public enum SelectionEmptyReason
     NoEligibleWords,
     NoWeakWords,
     NothingToPractice,
+
+    /// <summary>選んだ語彙セットの範囲が空、または範囲の語が今の単語データに1つも無い。</summary>
+    EmptyScope,
 }
 
 /// <summary>選択の結果。件数は選んだ単語の種類ごと(Unseen は未出題、Seen は既出の通常単語)。</summary>
@@ -23,13 +26,15 @@ public sealed record SelectionResult(
 
 /// <summary>
 /// 出題する単語の選択(design.md 4章)。時刻と乱数は外から受け取る。
+/// allowedWordIds は語彙セットの範囲(null = 範囲指定なし、空 = 指定した範囲が空で何も出さない)。
 /// 単語データは WordSetValidator を通したものが前提だが、空の ID・綴りは除き、同じ ID は先にあるものだけ使う。
 /// </summary>
 public static class QuestionSelector
 {
     public static SelectionResult Select(
         WordSet wordSet, LearningProgress progress, LearningSettings settings,
-        IReadOnlySet<LearningMode> availableModes, DateTimeOffset now, Random random)
+        IReadOnlySet<LearningMode> availableModes, DateTimeOffset now, Random random,
+        IReadOnlySet<string>? allowedWordIds = null)
     {
         ArgumentNullException.ThrowIfNull(wordSet);
         ArgumentNullException.ThrowIfNull(progress);
@@ -53,6 +58,17 @@ public static class QuestionSelector
 
         // 単語データの順に固定して扱う(学習記録の辞書の列挙順は使わない)
         var words = CleanWords(wordSet);
+        if (allowedWordIds is not null)
+        {
+            // 範囲指定あり(空の範囲も指定のうち)。候補の生成入口で交差させる(再確認・苦手・未出題・既出通常のすべてに効く)
+            var allowed = allowedWordIds.ToHashSet(StringComparer.Ordinal);
+            words = words.Where(w => allowed.Contains(w.Id)).ToList();
+            if (words.Count == 0)
+            {
+                return new SelectionResult([], 0, 0, 0, 0, SelectionEmptyReason.EmptyScope);
+            }
+        }
+
         var candidates = new List<Candidate>();
         foreach (var word in words)
         {
@@ -121,7 +137,7 @@ public static class QuestionSelector
         return new SelectionResult([.. plan], pickedUnseen.Count, pickedSeen.Count, pickedWeak.Count, pickedReview.Count, SelectionEmptyReason.None);
     }
 
-    private static List<WordEntry> CleanWords(WordSet wordSet)
+    internal static List<WordEntry> CleanWords(WordSet wordSet)
     {
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
         return wordSet.Words

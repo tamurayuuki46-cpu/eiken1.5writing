@@ -52,6 +52,7 @@ public sealed class HomeViewModel : ScreenViewModel
         RecommendedCommand = Command(() => Invoke(flow => flow.StartRecommended()));
         ToggleFreeChoiceCommand = Command(() => IsFreeChoiceOpen = !IsFreeChoiceOpen);
         OpenWeakListCommand = Command(() => Invoke(flow => flow.OpenWeakList()));
+        OpenVocabularySetsCommand = Command(() => Invoke(flow => flow.OpenVocabularySets()));
         StartCommand = Command(() => Invoke(flow => flow.StartPractice(Choice)), () => SelectedMode.Available);
     }
 
@@ -142,6 +143,9 @@ public sealed class HomeViewModel : ScreenViewModel
     /// <summary>苦手一覧へ(戻るとホームに戻る)。</summary>
     public RelayCommand OpenWeakListCommand { get; }
 
+    /// <summary>語彙セット(50語・100語)の一覧へ(UI v0.3 S-06。戻るとホームに戻る)。</summary>
+    public RelayCommand OpenVocabularySetsCommand { get; }
+
     /// <summary>自由選択の展開・閉じる。</summary>
     public RelayCommand ToggleFreeChoiceCommand { get; }
 
@@ -156,7 +160,7 @@ public sealed class HomeViewModel : ScreenViewModel
         WeakOnly,
         SelectedFlashSeconds);
 
-    private static ModeOption[] BuildModeOptions(IReadOnlySet<LearningMode> available, PracticeChoice initial)
+    internal static ModeOption[] BuildModeOptions(IReadOnlySet<LearningMode> available, PracticeChoice initial)
     {
         var options = new List<ModeOption> { new(ScreenText.AutoMix, true, initial.ManualMode) };
         foreach (var mode in Enum.GetValues<LearningMode>())

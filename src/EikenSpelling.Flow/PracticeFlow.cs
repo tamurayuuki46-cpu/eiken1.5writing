@@ -201,6 +201,11 @@ public sealed partial class PracticeFlow
         _document = startup.Document ?? new ProgressDocument();
         _lastAnswer = null;
         _pending = null;
+        _ordered = startup.WordSet is null ? [] : VocabularySets.Order(startup.WordSet);
+        _setUnit = VocabularySets.BaseSize;
+        _setNumber = 1;
+        _setChoice = null;
+        _setPlan = null;
         // 最初の画面はここだけで決める: 止まる画面 / 未完了の練習があれば再開の選択 / それ以外はホーム
         FlowScreen first = startup.Stop
             ?? (startup.Document?.Session is { } session ? ResumePrompt(session) : Home());
@@ -247,8 +252,15 @@ public sealed partial class PracticeFlow
     private ResumePromptScreen ResumePrompt(PracticeSession session)
     {
         var reason = ResumeCheck.Check(session, _words, _options.AvailableModes);
-        return new ResumePromptScreen(
-            new ResumeSummary(session.StartedAt, session.Answers.Length, session.Questions.Length), reason is null, reason);
+        var summary = new ResumeSummary(session.StartedAt, session.Answers.Length, session.Questions.Length)
+        {
+            Phase = SessionManager.Phase(session),
+            Skipped = session.Skips.Length,
+            Set = session.Scope is { } scope
+                ? new ResumeSetContext(scope.UnitSize, scope.Number, scope.TotalSets, scope.WordSetVersion != _wordSet!.WordSetVersion)
+                : null,
+        };
+        return new ResumePromptScreen(summary, reason is null, reason);
     }
 
     private SaveResult Save(ProgressDocument document) => _repository!.Save(WithVersions(document));

@@ -64,6 +64,10 @@ public sealed class ResumePromptViewModel : ScreenViewModel
         StartedAtText = JstClock.TryToJst(screen.Session.StartedAt)?.ToString("M月d日 HH:mm") ?? "";
         Answered = screen.Session.Answered;
         Total = screen.Session.Total;
+        PhaseText = screen.Session.Phase is { } phase ? ScreenText.ResumePhaseText(phase, screen.Session.Skipped) : null;
+        SetText = screen.Session.Set is { } set ? ScreenText.ResumeSetText(set.UnitSize, set.Number, set.Total) : null;
+        // 再開できないとき(理由が出るとき)は「続けられます」とは言わない
+        SetUpdatedNote = screen.CanResume && screen.Session.Set is { WordSetUpdated: true } ? ScreenText.ResumeSetUpdated : null;
         CanResume = screen.CanResume;
         CannotResumeReason = screen.CannotResumeReason;
         Message = screen.Message;
@@ -76,6 +80,15 @@ public sealed class ResumePromptViewModel : ScreenViewModel
     public int Answered { get; }
 
     public int Total { get; }
+
+    /// <summary>次の問題の段階(後回しの数つき)。</summary>
+    public string? PhaseText { get; }
+
+    /// <summary>語彙セットから始めた練習のときだけ(範囲指定なしは null)。</summary>
+    public string? SetText { get; }
+
+    /// <summary>始めた後に単語データが更新されたときの案内(再抽選しないこと)。</summary>
+    public string? SetUpdatedNote { get; }
 
     public bool CanResume { get; }
 

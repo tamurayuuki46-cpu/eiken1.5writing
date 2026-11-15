@@ -68,9 +68,15 @@
             <TextBlock Style="{StaticResource Sub}" Text="おすすめ学習で Enter を押すと始まります" HorizontalAlignment="Center" Margin="0,8,0,0"
                        Visibility="{Binding IsFreeChoiceOpen, Converter={StaticResource FalseToVisible}}" />
 
-            <Button x:Name="WeakListButton" Style="{StaticResource LinkButton}" Content="苦手一覧を見る" HorizontalAlignment="Center" Margin="0,12,0,0"
-                    Command="{Binding OpenWeakListCommand}"
-                    AutomationProperties.HelpText="間違えた綴りと苦手の状態を見ます。戻るとホームに戻ります" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
+                <Button x:Name="WeakListButton" Style="{StaticResource LinkButton}" Content="苦手一覧を見る" Margin="0,0,16,0"
+                        Command="{Binding OpenWeakListCommand}"
+                        AutomationProperties.HelpText="間違えた綴りと苦手の状態を見ます。戻るとホームに戻ります" />
+                <Button x:Name="VocabularySetsButton" Style="{StaticResource LinkButton}" Content="語彙セット"
+                        Command="{Binding OpenVocabularySetsCommand}"
+                        AutomationProperties.Name="語彙セット"
+                        AutomationProperties.HelpText="50語・100語のセットを見て、選んだセットの語だけで練習を始めます" />
+            </StackPanel>
 
             <!-- 自由選択(ホーム内に展開。今回だけ。基本設定には書き戻さない) -->
             <Border Style="{StaticResource Card}" Margin="0,16,0,0" Width="580"

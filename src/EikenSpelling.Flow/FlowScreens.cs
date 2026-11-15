@@ -85,7 +85,20 @@ public sealed record SettingsScreen(
     public ImmutableArray<SettingsIssue> Issues { get; init; } = [];
 }
 
-public sealed record ResumeSummary(DateTimeOffset StartedAt, int Answered, int Total);
+/// <summary>語彙セットから始めた練習の文脈(開始時のセットの単位・番号・総数)。WordSetUpdated は、それ以後に単語データが更新されたこと。</summary>
+public sealed record ResumeSetContext(int UnitSize, int Number, int Total, bool WordSetUpdated);
+
+/// <summary>
+/// 再開の選択に出す要約。Phase は次の問題の段階、Skipped は後回しにした数、Set は語彙セットから始めた練習のときだけ(範囲指定なしは null)。
+/// </summary>
+public sealed record ResumeSummary(DateTimeOffset StartedAt, int Answered, int Total)
+{
+    public QuestionPhase? Phase { get; init; }
+
+    public int Skipped { get; init; }
+
+    public ResumeSetContext? Set { get; init; }
+}
 
 /// <summary>未完了の練習がある。CanResume が偽なら「終了して新しく始める」だけ選べる。</summary>
 public sealed record ResumePromptScreen(ResumeSummary Session, bool CanResume, string? CannotResumeReason, string? Message = null) : FlowScreen;

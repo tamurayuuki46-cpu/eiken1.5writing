@@ -66,7 +66,65 @@ public static class ScreenText
         SelectionEmptyReason.NoEligibleWords => "選んだ出題方法で出せる単語がありません。",
         SelectionEmptyReason.NoWeakWords => "苦手な単語がまだありません。「苦手のみ」を外して練習してください。",
         SelectionEmptyReason.NothingToPractice => "今は練習できる単語がありません。",
+        SelectionEmptyReason.EmptyScope => "この語彙セットには、出題できる単語がありません。",
         _ => throw new ArgumentOutOfRangeException(nameof(reason)),
+    };
+
+    // ---- 語彙セット(UI v0.3 S-06) ----
+
+    public static string StudyState(WordStudyState state) => state switch
+    {
+        WordStudyState.Unseen => "未出題",
+        WordStudyState.Normal => "通常",
+        WordStudyState.Weak => "苦手",
+        WordStudyState.Mastered => "克服済み",
+        WordStudyState.ReviewDue => "再確認待ち",
+        _ => throw new ArgumentOutOfRangeException(nameof(state)),
+    };
+
+    /// <summary>「セット 2 / 99(51〜100語目・全4,924語)」。</summary>
+    public static string SetPageText(int unitSize, int number, int total, int totalWords)
+    {
+        if (total == 0)
+        {
+            return "語彙セットはありません";
+        }
+
+        var first = ((number - 1) * unitSize) + 1;
+        var last = Math.Min(number * unitSize, totalWords);
+        return $"{SetNumberText(number, total)}({first}〜{last}語目・全{totalWords}語)";
+    }
+
+    public static string SetNumberText(int number, int total) => $"セット {number} / {total}";
+
+    public static string SetUnitLabel(int unitSize, bool selected) => selected ? $"{unitSize}語ずつ(選択中)" : $"{unitSize}語ずつ";
+
+    public static string SetShortHeadline(int available, int desired) => $"このセットでは{available}問出題できます(希望{desired}問)";
+
+    public static string SetFullHeadline(int available) => $"このセットから{available}問を出題します";
+
+    public const string SetNothingHeadline = "このセットでは出題できる問題がありません";
+
+    public static string SetStartLabel(int available) => $"{available}問で開始";
+
+    public const string SetRetryStartLabel = "もう一度保存して開始";
+
+    public const string SetPlanChanged = "条件が変わったため、出題できる問題を確かめ直しました。もう一度確認してください。";
+
+    public const string SetBackToConditions = "条件に戻る";
+
+    public const string SetNothingHint = "問題数・出題方法・「苦手のみ」を変えるか、別のセットを選んでください。";
+
+    public static string ResumeSetText(int unitSize, int number, int total) => $"語彙セット {number} / {total}({unitSize}語ずつ)から始めた練習";
+
+    public const string ResumeSetUpdated = "単語データが更新されたため、今のセットの区切りとは違う場合があります。この練習は始めたときの語のまま続けられます。";
+
+    public static string ResumePhaseText(QuestionPhase phase, int skipped) => phase switch
+    {
+        QuestionPhase.Normal when skipped > 0 => $"次は通常問題です(後回し {skipped}問)",
+        QuestionPhase.Normal => "次は通常問題です",
+        QuestionPhase.Deferred => $"次は後回しの問題です(後回し {skipped}問)",
+        _ => "次は再練習です",
     };
 
     /// <summary>後回しで「答えを見る」を選んだ判定の見出し(UI v0.3 S-04)。</summary>

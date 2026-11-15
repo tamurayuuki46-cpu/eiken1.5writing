@@ -69,6 +69,13 @@ public sealed record PracticeSession
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? FlashShownStep { get; init; }
 
+    /// <summary>
+    /// 語彙セットから始めた練習の範囲(開始時に固定。再開は現在のセット番号から選び直さない)。
+    /// 範囲指定なしの従来の練習は null(書かない)。空の範囲は不正で、null とは別の意味。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public VocabularySetScope? Scope { get; init; }
+
     /// <summary>処理した数(採点 + スキップ)。提示ごとに1つずつ増える。</summary>
     [JsonIgnore]
     public int ProcessedSteps => Answers.Length + Skips.Length;

@@ -34,7 +34,8 @@ public sealed record AnswerChange(
 /// </summary>
 public static class SessionManager
 {
-    public static PracticeSession Start(Guid sessionId, DateTimeOffset startedAt, IReadOnlyList<PlannedQuestion> plan, LearningSettings settings)
+    public static PracticeSession Start(
+        Guid sessionId, DateTimeOffset startedAt, IReadOnlyList<PlannedQuestion> plan, LearningSettings settings, VocabularySetScope? scope = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(settings);
@@ -53,12 +54,19 @@ public static class SessionManager
             throw new ArgumentException("設定に不正な値があるため、練習を始められません。", nameof(settings));
         }
 
+        if (scope?.Problem() is { } scopeProblem)
+        {
+            throw new ArgumentException(scopeProblem, nameof(scope));
+        }
+
+        var allowed = scope?.ToSet();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var q in plan)
         {
             var problem = CheckQuestion(q?.WordId, q?.Word, q?.Mode, q?.EligibleModes)
                 ?? (seen.Add(q!.WordId) ? null : "同じ単語が出題一覧に2回あります。")
-                ?? (!settings.Practice.AutoMix && q.Mode != settings.Practice.ManualMode ? "手動モードの出題一覧のモードが設定と違います。" : null);
+                ?? (!settings.Practice.AutoMix && q.Mode != settings.Practice.ManualMode ? "手動モードの出題一覧のモードが設定と違います。" : null)
+                ?? (allowed is not null && !allowed.Contains(q.WordId) ? "出題一覧に語彙セットの範囲の外の単語があります。" : null);
             if (problem is not null)
             {
                 throw new ArgumentException(problem, nameof(plan));
@@ -71,6 +79,7 @@ public static class SessionManager
             StartedAt = startedAt,
             Settings = settings,
             Questions = [.. plan.Select(q => new SessionQuestion(q.WordId, q.Word, q.Mode, AttemptType.Normal, q.EligibleModes))],
+            Scope = scope,
         };
     }
 

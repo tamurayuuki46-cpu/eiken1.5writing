@@ -57,6 +57,19 @@ public static class SessionValidator
             }
         }
 
+        if (session.Scope is { } scope)
+        {
+            // 範囲指定のあるセッション: 形が正しく、再練習を含む全問が許可集合に入っていること(範囲指定なし = null には何も課さない)
+            if (scope.Problem() is { } scopeProblem)
+            {
+                problems.Add(scopeProblem);
+            }
+            else if (session.Questions.Any(q => !scope.WordIds.Contains(q.WordId, StringComparer.Ordinal)))
+            {
+                problems.Add("出題に語彙セットの範囲の外の単語があります。");
+            }
+        }
+
         if (normals.Select(q => q.WordId).Distinct(StringComparer.Ordinal).Count() != normals.Count)
         {
             problems.Add("同じ単語が通常問題に2回あります。");
