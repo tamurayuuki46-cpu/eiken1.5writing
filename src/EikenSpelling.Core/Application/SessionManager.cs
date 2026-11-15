@@ -114,6 +114,27 @@ public static class SessionManager
         return session with { Skips = session.Skips.Add(new SessionSkip(session.CurrentIndex!.Value, skippedAt)) };
     }
 
+    /// <summary>今の問題がフラッシュで、この提示で表示を始めた(印が今の処理した数と同じ)か。</summary>
+    public static bool IsFlashShown(PracticeSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        return Current(session)?.Mode == LearningMode.Flash && session.FlashShownStep == session.ProcessedSteps;
+    }
+
+    /// <summary>
+    /// 今のフラッシュの問題に表示開始の印を付ける(採点しない)。呼び出し側は返したセッションを保存してから単語を見せる。
+    /// </summary>
+    public static PracticeSession MarkFlashShown(PracticeSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (Current(session)?.Mode != LearningMode.Flash)
+        {
+            throw new InvalidOperationException("今の問題はフラッシュではありません。");
+        }
+
+        return session with { FlashShownStep = session.ProcessedSteps };
+    }
+
     public static SessionAnswerResult Answer(PracticeSession session, LearningProgress progress, string input, DateTimeOffset answeredAt)
     {
         ArgumentNullException.ThrowIfNull(session);

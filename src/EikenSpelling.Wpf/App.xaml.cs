@@ -6,6 +6,7 @@ using EikenSpelling.Core.Models;
 using EikenSpelling.Flow;
 using EikenSpelling.Presentation;
 using EikenSpelling.Presentation.Logging;
+using EikenSpelling.Wpf.Speech;
 
 namespace EikenSpelling.Wpf;
 
@@ -15,12 +16,10 @@ namespace EikenSpelling.Wpf;
 /// </summary>
 public partial class App : Application
 {
-    /// <summary>骨組みで使える出題モード(日本語・穴あき。音声・フラッシュは次のタスク)。</summary>
-    private static readonly IReadOnlySet<LearningMode> Modes = new HashSet<LearningMode> { LearningMode.Japanese, LearningMode.Blank };
-
     private const string CrashMessage = "問題が起きたため終了します。最後に保存できた問題までの記録は残っています。";
 
     private SingleInstance? _single;
+    private SystemSpeechPlayer? _speech;
     private IAppLog _log = NullLog.Instance;
     private MainWindow? _window;
     private int _crashing;
@@ -59,15 +58,29 @@ public partial class App : Application
         // 5. 単語データ(無い・読めないなら null → Flow が WordSetInvalid)
         var wordsJson = ReadWords();
 
+        // 5.5 端末で使える出題モード: 日本語・穴あき・フラッシュは常に、音声は英語の声があるときだけ(音声モード A1)
+        _speech = SystemSpeechPlayer.Create(Dispatcher, out var speechReason);
+        if (speechReason is not null)
+        {
+            _log.Write(LogLevel.Warn, "speech", speechReason);
+        }
+
+        var modes = new HashSet<LearningMode> { LearningMode.Japanese, LearningMode.Blank, LearningMode.Flash };
+        if (_speech.IsAvailable)
+        {
+            modes.Add(LearningMode.Audio);
+        }
+
         // 6〜7. Flow と窓
         var flow = PracticeFlow.Start(new FlowOptions
         {
             DataDirectory = arguments.DataDirectory,
             WordSetJson = wordsJson,
-            AvailableModes = Modes,
+            AvailableModes = modes,
         });
         var prompt = new MessageBoxPrompt(() => _window, () => _window?.FocusCurrentScreen());
-        var shell = new ShellViewModel(flow, new ShellOptions(Modes, prompt, _log, TimeProvider.System));
+        var shell = new ShellViewModel(
+            flow, new ShellOptions(modes, prompt, _log, TimeProvider.System, _speech, new DispatcherScheduler(Dispatcher)));
         _window = new MainWindow(shell);
         shell.ExitRequested += (_, _) => _window.CloseWithoutConfirmation();
         _single.ListenForActivation(() => Dispatcher.BeginInvoke(() => _window?.BringToFront()));
@@ -78,6 +91,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _speech?.Dispose();
         _single?.Dispose();
         base.OnExit(e);
     }

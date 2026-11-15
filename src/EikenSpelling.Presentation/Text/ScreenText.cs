@@ -20,6 +20,21 @@ public static class ScreenText
 
     public const string AutoMix = "自動ミックス";
 
+    /// <summary>音声モードの案内(綴り・文字数は出さない。音声モード A4・Q-A3)。</summary>
+    public const string AudioPrompt = "音声を聞いて、英単語を入力してください";
+
+    /// <summary>フラッシュモードの案内。</summary>
+    public const string FlashPrompt = "表示された英単語を覚えて、消えたら入力してください";
+
+    /// <summary>読み上げに失敗したとき(音声モード A6)。</summary>
+    public const string SpeechFailed = "音声を再生できませんでした。もう一度聞くか、やめて別の出題方法で練習してください。";
+
+    /// <summary>端末に英語の音声が無いとき(音声モード A7、UI v0.3 UC-31)。</summary>
+    public const string AudioUnavailable = "英語の音声が入っていないため、音声モードは使えません。";
+
+    /// <summary>フラッシュの表示秒数の表示(0.5 → 「0.5秒」)。</summary>
+    public static string Seconds(double seconds) => seconds.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "秒";
+
     /// <summary>
     /// 段階別の進み具合の1行(UI v0.3 FA)。通常・後回しは「通常:全5問中の2問目」、再練習は「再練習2問目・残り1問」
     /// (total は再練習では今の問題を含む残り)。正解の文字を含まないのでスクリーンリーダー用の名前にも使える。

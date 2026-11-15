@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.InputBindings>
         <KeyBinding Key="Escape" Command="{Binding QuitCommand}" />
+        <KeyBinding Key="Space" Modifiers="Control" Command="{Binding ReplayCommand}" />
     </UserControl.InputBindings>
     <DockPanel>
         <!-- 進捗バー(上端) -->
@@ -28,20 +29,33 @@
                 <TextBlock Style="{StaticResource Sub}" HorizontalAlignment="Right" Text="{Binding RetryNote}"
                            Visibility="{Binding RetryNote, Converter={StaticResource NotNullToVisible}}" />
 
-                <!-- 後回しの保存失敗の警告の帯(保存できるまで回答・後回し・やめるは押せない) -->
+                <!-- 読み上げの失敗の帯(誤答にはしない) -->
                 <Border Style="{StaticResource WarnBand}" Margin="0,12,0,0"
-                        Visibility="{Binding SkipSaveFailure, Converter={StaticResource NotNullToVisible}}">
+                        Visibility="{Binding SpeechWarning, Converter={StaticResource NotNullToVisible}}">
+                    <TextBlock Style="{StaticResource Body}" FontSize="14" Foreground="{StaticResource DangerText}" TextWrapping="Wrap"
+                               Text="{Binding SpeechWarning, StringFormat=⚠ {0}}" />
+                </Border>
+
+                <!-- 保存待ちの警告の帯(後回し・フラッシュの表示開始。保存できるまで回答・後回し・やめるは押せない) -->
+                <Border Style="{StaticResource WarnBand}" Margin="0,12,0,0"
+                        Visibility="{Binding SaveFailure, Converter={StaticResource NotNullToVisible}}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource Body}" FontWeight="Bold" Foreground="{StaticResource DangerText}" Text="⚠ 後回しを保存できませんでした" />
-                        <TextBlock Style="{StaticResource Body}" FontSize="14" Foreground="{StaticResource DangerText}" TextWrapping="Wrap" Text="{Binding SkipSaveFailure}" />
+                        <TextBlock Style="{StaticResource Body}" FontWeight="Bold" Foreground="{StaticResource DangerText}" Text="⚠ 保存できませんでした" />
+                        <TextBlock Style="{StaticResource Body}" FontSize="14" Foreground="{StaticResource DangerText}" TextWrapping="Wrap" Text="{Binding SaveFailure}" />
                         <Button x:Name="RetrySaveButton" Style="{StaticResource PrimaryButton}" Content="もう一度保存" HorizontalAlignment="Left" Margin="0,10,0,0"
-                                AutomationProperties.HelpText="後回しを保存できませんでした"
+                                AutomationProperties.HelpText="保存できませんでした"
                                 Command="{Binding RetrySaveCommand}" />
                     </StackPanel>
                 </Border>
 
-                <!-- 問題: 日本語は意味、穴あきは穴あき表示と文字数 -->
+                <!-- 問題: 日本語は意味、穴あきは穴あき表示と文字数、音声・フラッシュは案内文(綴りは出さない) -->
                 <StackPanel Margin="0,48,0,32" HorizontalAlignment="Center">
+                    <!-- フラッシュ: 表示秒数の間だけ単語を出す(その間は入力欄を隠す) -->
+                    <TextBlock x:Name="FlashWordText" Focusable="True" FocusVisualStyle="{x:Null}"
+                               FontFamily="{StaticResource WordFont}" FontSize="52" FontWeight="Bold" Foreground="{StaticResource Text}"
+                               HorizontalAlignment="Center" Margin="0,0,0,16" Text="{Binding FlashWord}"
+                               AutomationProperties.Name="フラッシュの単語"
+                               Visibility="{Binding FlashWord, Converter={StaticResource NotNullToVisible}}" />
                     <TextBlock Style="{StaticResource Body}" FontSize="{StaticResource PromptSize}" FontWeight="Bold" TextAlignment="Center"
                                Text="{Binding Prompt}" Visibility="{Binding IsBlankMode, Converter={StaticResource FalseToVisible}}" />
                     <StackPanel Visibility="{Binding IsBlankMode, Converter={StaticResource BoolToVisible}}">
@@ -51,9 +65,13 @@
                             <Run Text="{Binding LetterCount, Mode=OneWay}" /><Run Text="文字" />
                         </TextBlock>
                     </StackPanel>
+                    <!-- 音声: 聞き直し(フォーカスを回答欄から奪わない) -->
+                    <Button Style="{StaticResource SecondaryButton}" Content="もう一度聞く(Ctrl+Space)" HorizontalAlignment="Center" Margin="0,16,0,0"
+                            Focusable="False" Command="{Binding ReplayCommand}" AutomationProperties.Name="もう一度聞く"
+                            Visibility="{Binding IsAudioMode, Converter={StaticResource BoolToVisible}}" />
                 </StackPanel>
 
-                <StackPanel Width="560">
+                <StackPanel Width="560" Visibility="{Binding IsInputVisible, Converter={StaticResource BoolToVisible}}">
                     <Label Target="{Binding ElementName=AnswerBox}" Padding="0,0,0,6" FontSize="14" Foreground="{StaticResource TextSub}" Content="英単語を入力(全部のスペル)" />
                     <TextBox x:Name="AnswerBox" Style="{StaticResource AnswerBox}"
                              Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
@@ -61,6 +79,7 @@
                              AutomationProperties.Name="回答の入力欄">
                         <TextBox.InputBindings>
                             <KeyBinding Key="Enter" Command="{Binding AnswerCommand}" />
+                            <KeyBinding Key="Space" Modifiers="Control" Command="{Binding ReplayCommand}" />
                         </TextBox.InputBindings>
                     </TextBox>
                     <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,0" Text="英単語を入力してください"
@@ -75,6 +94,10 @@
                         <Button Style="{StaticResource SecondaryButton}" Content="やめる" Command="{Binding QuitCommand}" />
                     </StackPanel>
                 </StackPanel>
+
+                <!-- フラッシュの表示中は入力欄を隠し、やめるだけ出す -->
+                <Button Style="{StaticResource SecondaryButton}" Content="やめる" Command="{Binding QuitCommand}" HorizontalAlignment="Center"
+                        Visibility="{Binding IsInputVisible, Converter={StaticResource FalseToVisible}}" />
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

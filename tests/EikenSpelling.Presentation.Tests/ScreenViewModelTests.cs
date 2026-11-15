@@ -23,7 +23,8 @@ public class ScreenViewModelTests
         Assert.Equal([5, 10, 20], home.QuestionCountOptions);
         Assert.Equal(10, home.SelectedQuestionCount);
         Assert.True(home.SelectedMode.AutoMix);
-        Assert.Equal(["自動ミックス", "日本語", "穴あき"], home.ModeOptions.Select(o => o.Label));
+        // 端末に音声が無い(ShellEnv の既定は日本語・穴あき)ので、音声は理由付きで出す(UI v0.3 UC-31)
+        Assert.Equal(["自動ミックス", "日本語", "音声(この端末では使えません)", "穴あき"], home.ModeOptions.Select(o => o.Label));
         Assert.Null(home.InfoMessage);
         Assert.Null(home.WarningMessage);
     }
@@ -75,9 +76,16 @@ public class ScreenViewModelTests
         Assert.False(home.SelectedMode.Available);
         Assert.Contains("使えません", home.SelectedMode.Label, StringComparison.Ordinal);
 
+        // 使えないモードでは「この条件で開始」を押せず、理由を出す(UI v0.3 UC-30)
+        Assert.NotNull(home.SelectedModeUnavailableNote);
+        Assert.False(home.StartCommand.CanExecute(null));
         shell.Run(env.Time, s => ((HomeViewModel)s).StartCommand);
-        Assert.NotNull(shell.As<HomeViewModel>().InfoMessage); // ManualModeUnavailable の理由
+        Assert.Same(home, shell.Current);
         Assert.Null(env.ProgressJsonText);
+
+        home.SelectedMode = home.ModeOptions.First(o => o.AutoMix);
+        Assert.Null(home.SelectedModeUnavailableNote);
+        Assert.True(home.StartCommand.CanExecute(null));
     }
 
     // ---- 出題 ----

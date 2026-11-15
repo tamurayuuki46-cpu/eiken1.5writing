@@ -15,12 +15,22 @@ public partial class QuestionView : UserControl, IInitialFocus
         DataObject.AddPastingHandler(AnswerBox, OnPasting);
     }
 
-    /// <summary>ふだんは回答欄、後回しの保存失敗中は「もう一度保存」(回答欄は打ちかけの入力を残すが送れない)。</summary>
+    /// <summary>
+    /// ふだんは回答欄、保存待ちの間は「もう一度保存」(回答欄は打ちかけの入力を残すが送れない)。
+    /// フラッシュの表示中は回答欄が隠れているので単語の表示へ(フォーカスが画面の中にないと Esc が効かないため。
+    /// ボタンにすると、続けて押した Enter で「やめる」が押されてしまう)。
+    /// </summary>
     public void FocusInitial()
     {
-        if (DataContext is QuestionViewModel { IsSkipSavePending: true })
+        if (DataContext is QuestionViewModel { IsSavePending: true })
         {
             RetrySaveButton.Focus();
+            return;
+        }
+
+        if (DataContext is QuestionViewModel { IsInputVisible: false })
+        {
+            FlashWordText.Focus();
             return;
         }
 

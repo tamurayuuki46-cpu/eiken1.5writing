@@ -9,11 +9,13 @@ internal static class ScreenViewModelFactory
     public static ScreenViewModel Create(ShellViewModel shell, FlowScreen screen, ScreenViewModel? previous) => screen switch
     {
         // 0語・開始の保存失敗でホームに戻ったときは、直前に選んでいた値を残す
-        HomeScreen home => new HomeViewModel(shell, home, (previous as HomeViewModel)?.Choice),
+        // 自由選択は開いていたときだけ開いたまま(おすすめ学習から戻ったときは閉じたまま)
+        HomeScreen home => new HomeViewModel(
+            shell, home, (previous as HomeViewModel)?.Choice, previous is HomeViewModel { IsFreeChoiceOpen: true }),
         ResumePromptScreen resume => new ResumePromptViewModel(shell, resume),
         // スキップの保存待ちは同じ問題に留まるので、打ちかけの入力を残す(UI v0.3 S-03)
         QuestionScreen question => new QuestionViewModel(
-            shell, question, question.SkipSavePending ? (previous as QuestionViewModel)?.Input : null),
+            shell, question, question.SavePending ? (previous as QuestionViewModel)?.Input : null),
         FeedbackScreen feedback => new FeedbackViewModel(
             shell, feedback, shell.LastAnswer ?? throw new InvalidOperationException("判定画面に出す直前の回答の値がありません。")),
         ResultScreen result => new ResultViewModel(shell, result),

@@ -6,7 +6,7 @@
 - 利用者: 英検準1級を受ける学習者本人(1人・1台の PC)
 - Core Value: 間違えたスペルを差分で示し、苦手語を克服するまで繰り返し出題する
 - やらないこと(v0.1): 手動バックアップ・JSON エクスポート/インポート・PC 移行(仕様 v1.0 13.6)、スマホ版の画面
-- 現在のフェーズ: 実装。Core・保存(Persistence)・進行役(Flow)まで完了。WPF の骨組み(ホーム → 練習 → 判定 → 結果、日本語・穴あき)を実装中(`.steering/20261114-wpf-shell/`)。UI の工程は UI 技術選定 → UX 設計 → UI 設計 → 設計レビュー → 実装 → 検証の順(各工程の資料は `.steering/20261114-*`)
+- 現在のフェーズ: 実装。Core・Persistence・Flow・WPF の主な流れ(ホームのおすすめ学習・自由選択 → 4モードの出題 → 判定 → 再練習 → 結果、後回し・保存失敗時の再保存・再開)まで完了(`.steering/20261115-*`)。設計の正本は UI v0.3 詳細設計・P0-AC v0.2(リポジトリ外の承認済み資料)。残る主なもの: 同音異義語の音声除外、設定画面、苦手一覧の画面、語彙セット、Reveal
 
 ## 2. 技術スタック
 - 言語・フレームワーク: C# / .NET 10 / WPF(画面のみ)
@@ -30,8 +30,8 @@ src/EikenSpelling.Core/   # 学習ロジック(Windows 非依存)
   Models/ Domain/ Application/ Settings/   # 層別(.claude/rules/architecture.md)
 src/EikenSpelling.Persistence/  # 保存・読込・復旧(Windows 非依存)
 src/EikenSpelling.Flow/   # 画面の手前の進行役: 起動・練習・保存失敗・破損時の画面の状態(Windows 非依存)
-src/EikenSpelling.Presentation/  # ViewModel(Windows 非依存。Flow の画面の状態を写す・受け付け開始のゲート・ログ・起動引数)
-src/EikenSpelling.Wpf/    # 画面(XAML)・テーマ・起動の合成・二重起動の防止(Windows 専用)。単語データ Data/words.json(道具で生成。手で直さない)
+src/EikenSpelling.Presentation/  # ViewModel(Windows 非依存。Flow の画面の状態を写す・受け付け開始のゲート・ログ・起動引数。差し替え口 Speech/・Scheduling/)
+src/EikenSpelling.Wpf/    # 画面(XAML)・テーマ・起動の合成・二重起動の防止・読み上げ(System.Speech)(Windows 専用)。単語データ Data/words.json(道具で生成。手で直さない)
 tests/EikenSpelling.Core.Tests/  # xUnit
 tests/EikenSpelling.Persistence.Tests/  # xUnit(一時フォルダ)
 tests/EikenSpelling.Flow.Tests/  # xUnit(一時フォルダの本物のファイルで通しの流れ)
@@ -106,6 +106,7 @@ prompts/8steps.md         # 8ステップの依頼文
 - 2026-11-14: XAML の誤りは実行するまで分からない。画面外に窓を置いて全画面を通し、PresentationTraceSources で結び付けの誤りを数えると、デスクトップ操作なしで確かめられる。
 - 2026-11-14: WPF の FocusVisualStyle はキーボード操作の後にしか描かれず、初期フォーカスに輪が出ない。常に見せる輪は Adorner で描き、外すときの層は装飾の親から取る(部品が木から外れた後は部品からたどれない)。ナレーターの読み上げは「読み上げの要約」(ナレーター キー + Alt + X)で文字として確かめられる。
 - 2026-11-15: 開発中の WPF は computer-use の対象アプリに出ない(Start メニューに無い)。Windows の UI Automation(PowerShell の System.Windows.Automation)でボタンを押し・文字を読めば実機の流れを確かめられる。PowerShell 5.1 のスクリプトは日本語を含むなら BOM 付き UTF-8 で保存する。保存失敗は別プロセスで progress.json を排他で開いて起こせる。
+- 2026-11-15: WPF の KeyBinding は、フォーカスがその UserControl の中にあるときだけ効く。入力欄を隠す状態(フラッシュの表示中)では、別の要素へフォーカスを移さないと Esc が効かない。確認ダイアログの間も DispatcherTimer は進むので、タイマーで画面が替わる状態では確認の前に止める(実機の UI Automation で見つけた)。
 - 2026-11-13: 起動時の復旧が先にファイルを作り直すと、「保存の後に再起動して通知が無い」だけでは保存の成否が分からない。保存の後のファイルの中身と画面を直接確かめる。
 
 ## 12. 参照

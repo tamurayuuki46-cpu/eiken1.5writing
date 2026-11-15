@@ -153,9 +153,24 @@ internal static class FlowExtensions
     /// <summary>今の問題に正答(または誤答)する。</summary>
     public static FeedbackScreen AnswerCurrent(this PracticeFlow flow, bool correct)
     {
+        flow.RevealFlashIfNeeded();
         var q = flow.As<QuestionScreen>().Question;
         flow.Answer(correct ? q.Word : q.Word + "x");
         return flow.As<FeedbackScreen>();
+    }
+
+    /// <summary>フラッシュの問題なら、画面と同じく見せて(ShowFlash)から隠す(EndFlash)。それ以外は何もしない。</summary>
+    public static void RevealFlashIfNeeded(this PracticeFlow flow)
+    {
+        if (flow.As<QuestionScreen>().Flash == FlashPhase.NotStarted)
+        {
+            flow.ShowFlash();
+        }
+
+        if (flow.As<QuestionScreen>().Flash == FlashPhase.Showing)
+        {
+            flow.EndFlash();
+        }
     }
 
     /// <summary>結果画面まで、すべて指定どおりに答える。</summary>

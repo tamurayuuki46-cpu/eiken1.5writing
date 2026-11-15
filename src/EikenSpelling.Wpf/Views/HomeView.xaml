@@ -39,30 +39,73 @@
 
             <TextBlock Style="{StaticResource Heading}" Text="今日の練習" HorizontalAlignment="Center" Margin="0,0,0,16" />
 
-            <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,16">
-                <StackPanel Orientation="Horizontal" Margin="0,0,20,8">
-                    <Label Target="{Binding ElementName=CountBox}" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource TextSub}" Content="問題数(_N)" />
-                    <ComboBox x:Name="CountBox" MinWidth="96" ItemsSource="{Binding QuestionCountOptions}" SelectedItem="{Binding SelectedQuestionCount}"
-                              AutomationProperties.Name="問題数" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,20,8">
-                    <Label Target="{Binding ElementName=ModeBox}" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource TextSub}" Content="出題(_M)" />
-                    <ComboBox x:Name="ModeBox" MinWidth="220" ItemsSource="{Binding ModeOptions}" SelectedItem="{Binding SelectedMode}"
-                              DisplayMemberPath="Label" AutomationProperties.Name="出題方法" />
-                </StackPanel>
-                <CheckBox Content="苦手のみ(_W)" IsChecked="{Binding WeakOnly}" Margin="0,0,0,8" Foreground="{StaticResource TextSub}" />
-            </WrapPanel>
-
             <Border Style="{StaticResource InfoBand}" Margin="0,0,0,12" Visibility="{Binding InfoMessage, Converter={StaticResource NotNullToVisible}}">
-                <TextBlock Style="{StaticResource Body}" Text="{Binding InfoMessage}" />
+                <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding InfoMessage}" />
             </Border>
             <Border Style="{StaticResource WarnBand}" Margin="0,0,0,12" Visibility="{Binding WarningMessage, Converter={StaticResource NotNullToVisible}}">
-                <TextBlock Style="{StaticResource Body}" Foreground="{StaticResource DangerText}" Text="{Binding WarningMessage, StringFormat=⚠ {0}}" />
+                <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Foreground="{StaticResource DangerText}" Text="{Binding WarningMessage, StringFormat=⚠ {0}}" />
             </Border>
 
-            <Button x:Name="StartButton" IsDefault="True" Style="{StaticResource PrimaryButton}" Width="340" MinHeight="64" FontSize="22"
-                    Content="始める" Command="{Binding StartCommand}" HorizontalAlignment="Center" />
-            <TextBlock Style="{StaticResource Sub}" Text="Enter で始める" HorizontalAlignment="Center" Margin="0,8,0,0" />
+            <!-- 2つの入口(同じ大きさ。UI v0.3 S-02) -->
+            <UniformGrid Columns="2" HorizontalAlignment="Center" Width="580">
+                <Button x:Name="RecommendedButton" Style="{StaticResource PrimaryButton}" MinHeight="72" Margin="0,0,8,0"
+                        IsDefault="{Binding IsFreeChoiceClosed}" Command="{Binding RecommendedCommand}"
+                        AutomationProperties.Name="おすすめ学習" AutomationProperties.HelpText="保存した問題数・自動ミックスで始めます">
+                    <StackPanel>
+                        <TextBlock Text="おすすめ学習" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" />
+                        <TextBlock Text="保存した問題数・自動ミックス" FontSize="13" HorizontalAlignment="Center" Opacity="0.9" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="FreeChoiceButton" Style="{StaticResource SecondaryButton}" MinHeight="72" Margin="8,0,0,0"
+                        Command="{Binding ToggleFreeChoiceCommand}"
+                        AutomationProperties.Name="自由選択" AutomationProperties.HelpText="今回だけの条件を選んで始めます">
+                    <StackPanel>
+                        <TextBlock Text="自由選択" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" />
+                        <TextBlock Text="今回だけの条件を選ぶ" FontSize="13" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </UniformGrid>
+            <TextBlock Style="{StaticResource Sub}" Text="おすすめ学習で Enter を押すと始まります" HorizontalAlignment="Center" Margin="0,8,0,0"
+                       Visibility="{Binding IsFreeChoiceOpen, Converter={StaticResource FalseToVisible}}" />
+
+            <!-- 自由選択(ホーム内に展開。今回だけ。基本設定には書き戻さない) -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0" Width="580"
+                    Visibility="{Binding IsFreeChoiceOpen, Converter={StaticResource BoolToVisible}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource Sub}" FontWeight="Bold" Text="今回の条件(基本設定は変わりません)" Margin="0,0,0,12" />
+                    <WrapPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,10">
+                            <Label Target="{Binding ElementName=CountBox}" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource TextSub}" Content="問題数(_N)" />
+                            <ComboBox x:Name="CountBox" MinWidth="96" ItemsSource="{Binding QuestionCountOptions}" SelectedItem="{Binding SelectedQuestionCount}"
+                                      AutomationProperties.Name="問題数" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,10">
+                            <Label Target="{Binding ElementName=ModeBox}" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource TextSub}" Content="出題(_M)" />
+                            <ComboBox x:Name="ModeBox" MinWidth="240" ItemsSource="{Binding ModeOptions}" SelectedItem="{Binding SelectedMode}"
+                                      DisplayMemberPath="Label" AutomationProperties.Name="出題方法" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,20,10"
+                                    Visibility="{Binding IsFlashSecondsRelevant, Converter={StaticResource BoolToVisible}}">
+                            <Label Target="{Binding ElementName=FlashBox}" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource TextSub}" Content="フラッシュ表示(_F)" />
+                            <ComboBox x:Name="FlashBox" MinWidth="96" ItemsSource="{Binding FlashSecondsOptions}" SelectedItem="{Binding SelectedFlashSeconds}"
+                                      ItemStringFormat="{}{0}秒" AutomationProperties.Name="フラッシュの表示秒数" />
+                        </StackPanel>
+                        <CheckBox Content="苦手のみ(_W)" IsChecked="{Binding WeakOnly}" Margin="0,0,0,10" VerticalAlignment="Center" Foreground="{StaticResource TextSub}" />
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource Sub}" TextWrapping="Wrap" Margin="0,0,0,10" Text="{Binding AudioUnavailableNote}"
+                               Visibility="{Binding AudioUnavailableNote, Converter={StaticResource NotNullToVisible}}" />
+                    <Border Style="{StaticResource InfoBand}" Margin="0,0,0,10"
+                            Visibility="{Binding SelectedModeUnavailableNote, Converter={StaticResource NotNullToVisible}}">
+                        <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Text="{Binding SelectedModeUnavailableNote}" />
+                    </Border>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="StartButton" Style="{StaticResource PrimaryButton}" MinWidth="200" Margin="0,0,12,0"
+                                IsDefault="{Binding IsFreeChoiceOpen}" Content="この条件で開始" Command="{Binding StartCommand}" />
+                        <Button Style="{StaticResource SecondaryButton}" Content="閉じる" Command="{Binding ToggleFreeChoiceCommand}" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Sub}" Text="Enter でこの条件で開始" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
